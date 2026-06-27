@@ -12,10 +12,10 @@ export const metadata = {
   creator: "Khud",
   icons: {
     icon: [
-      { url: "/images/logo-black-writing.png", type: "image/png" }
+      { url: "/images/logo-white-writing.png", type: "image/png" }
     ],
     apple: [
-      { url: "/images/logo-black-writing.png" }
+      { url: "/images/logo-white-writing.png" }
     ]
   },
   openGraph: {
