@@ -156,17 +156,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section--clay" data-reveal>
-        <div className="container newsletter">
-          <div>
-            <h2 className="display display--section" style={{ color: "var(--cream)" }}>
-              Join the
-              <br />
-              first drop.
-            </h2>
-            <p>Early access to Drop 01, custom-studio openings, and nothing else. Unsubscribe whenever.</p>
+      <section className="section--newsletter" data-reveal>
+        <div className="container">
+          <div className="newsletter-card">
+            <div>
+              <div className="eyebrow">First Drop</div>
+              <h2 className="display display--section" style={{ color: "var(--bone)" }}>
+                Join the
+                <br />
+                <span className="italic-clay">first drop.</span>
+              </h2>
+              <p>Early access to Drop 01, custom-studio openings, and nothing else. Unsubscribe whenever.</p>
+            </div>
+            <Newsletter />
           </div>
-          <Newsletter />
         </div>
       </section>
     </main>

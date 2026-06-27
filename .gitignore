@@ -1,11 +1,49 @@
-.next
-node_modules
-out
-dist
-.env*.local
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.claude/*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary / lock files
+~$*
+*.tmp
+*.temp
+
+# Claude AI tooling — never commit
+.claude/
 SKILLS.md
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

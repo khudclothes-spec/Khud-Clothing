@@ -2,8 +2,34 @@ import "./globals.css";
 import { SiteShell } from "@/components/SiteShell";
 
 export const metadata = {
-  title: "Khud",
-  description: "Premium ready-made clothing and a custom-print studio."
+  title: {
+    default: "Khud",
+    template: "%s — Khud"
+  },
+  description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
+  keywords: ["Khud", "custom clothing", "oversized tees", "Pakistan fashion", "custom print", "streetwear"],
+  authors: [{ name: "Khud Studio" }],
+  creator: "Khud",
+  icons: {
+    icon: [
+      { url: "/images/logo-black-writing.png", type: "image/png" }
+    ],
+    apple: [
+      { url: "/images/logo-black-writing.png" }
+    ]
+  },
+  openGraph: {
+    title: "Khud — Wear Your Imprint",
+    description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
+    siteName: "Khud",
+    locale: "en_US",
+    type: "website"
+  },
+  twitter: {
+    card: "summary",
+    title: "Khud — Wear Your Imprint",
+    description: "Premium ready-made clothing and a custom-print studio."
+  }
 };
 
 export default function RootLayout({ children }) {

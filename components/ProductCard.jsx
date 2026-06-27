@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { formatPrice } from "@/lib/data";
 import { useCart } from "@/components/CartContext";
 import { TeeGraphic } from "@/components/TeeGraphic";
@@ -18,7 +19,13 @@ export function ProductCard({ product, compact = false }) {
   }
 
   return (
-    <article className="product-card">
+    <motion.article
+      className="product-card"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="product-card__art">
         <div className="mockup-center">
           <TeeGraphic path={product.shape} fill={product.mockColor} width={compact ? "55%" : "60%"} />
@@ -54,6 +61,6 @@ export function ProductCard({ product, compact = false }) {
           <span className="size-hint">{product.sizeHint}</span>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }

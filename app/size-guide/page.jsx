@@ -1,13 +1,14 @@
+import { Reveal } from "@/components/Reveal";
 import { fitCards, measureTips, sizeRows } from "@/lib/data";
 
 export const metadata = {
-  title: "Size Guide - Khud"
+  title: "Size Guide"
 };
 
 export default function SizeGuidePage() {
   return (
     <main className="container container--narrow" style={{ paddingBottom: 90 }}>
-      <section className="page-title" style={{ marginBottom: 40 }}>
+      <section className="page-title" data-reveal style={{ marginBottom: 40 }}>
         <div className="eyebrow">Fit and Sizing</div>
         <h1 className="display display--large">Size guide.</h1>
         <p style={{ maxWidth: 560, fontSize: 15.5, lineHeight: 1.6 }}>
@@ -16,42 +17,46 @@ export default function SizeGuidePage() {
         </p>
       </section>
 
-      <div className="size-table-wrap">
-        <table className="size-table">
-          <thead>
-            <tr>
-              <th>Size</th>
-              <th>Chest</th>
-              <th>Length</th>
-              <th>Shoulder</th>
-              <th>Sleeve</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sizeRows.map((row) => (
-              <tr key={row.size}>
-                <td>{row.size}</td>
-                <td>{row.chest}</td>
-                <td>{row.length}</td>
-                <td>{row.shoulder}</td>
-                <td>{row.sleeve}</td>
+      <Reveal>
+        <div className="size-table-wrap">
+          <table className="size-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Chest</th>
+                <th>Length</th>
+                <th>Shoulder</th>
+                <th>Sleeve</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {sizeRows.map((row) => (
+                <tr key={row.size}>
+                  <td>{row.size}</td>
+                  <td>{row.chest}</td>
+                  <td>{row.length}</td>
+                  <td>{row.shoulder}</td>
+                  <td>{row.sleeve}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
 
-      <div className="fit-grid">
-        {fitCards.map((card) => (
-          <article className="fit-card" key={card.title}>
-            <div className="fit-card__icon">{card.icon}</div>
-            <div className="fit-card__title">{card.title}</div>
-            <div className="fit-card__body">{card.body}</div>
-          </article>
-        ))}
-      </div>
+      <Reveal delay={0.08}>
+        <div className="fit-grid">
+          {fitCards.map((card) => (
+            <article className="fit-card" key={card.title}>
+              <div className="fit-card__icon">{card.icon}</div>
+              <div className="fit-card__title">{card.title}</div>
+              <div className="fit-card__body">{card.body}</div>
+            </article>
+          ))}
+        </div>
+      </Reveal>
 
-      <section className="measure-section">
+      <section className="measure-section" data-reveal>
         <h2 className="display display--section" style={{ fontSize: "clamp(28px, 4vw, 44px)", marginBottom: 28 }}>
           How to measure.
         </h2>

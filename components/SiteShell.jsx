@@ -23,12 +23,33 @@ function ShellChrome({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const timers = useRef([]);
+  const revealObserver = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [phase, setPhase] = useState("");
   const { cartCount, openCart } = useCart();
 
   useEffect(() => {
     setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    revealObserver.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObserver.current.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "-40px 0px" }
+    );
+
+    document.querySelectorAll("[data-reveal]:not(.is-visible)").forEach((el) => {
+      revealObserver.current.observe(el);
+    });
+
+    return () => revealObserver.current?.disconnect();
   }, [pathname]);
 
   useEffect(() => {
