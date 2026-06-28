@@ -1,5 +1,6 @@
 import "./globals.css";
 import { SiteShell } from "@/components/SiteShell";
+import { SessionMonitor } from "@/components/SessionMonitor";
 
 export const metadata = {
   title: {
@@ -34,7 +35,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -44,6 +45,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <SessionMonitor />
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

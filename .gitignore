@@ -47,3 +47,10 @@ SKILLS.md
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+
+#scripts
+scripts/*
+
+#database
+db/*

@@ -7,20 +7,23 @@ import { TeeGraphic } from "@/components/TeeGraphic";
 
 export function ProductCard({ product, compact = false }) {
   const { addItem } = useCart();
+  const inStock = product.inStock !== false; // default true for local products
 
   function handleAdd() {
+    if (!inStock) return;
     addItem({
-      key: product.name,
+      key: product.id || product.name,
       name: product.name,
       meta: product.category,
       price: product.price,
-      shape: product.shape
+      shape: product.shape,
+      image: product.image ?? null
     });
   }
 
   return (
     <motion.article
-      className="product-card"
+      className={`product-card${!inStock ? " product-card--sold-out" : ""}`}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
@@ -28,7 +31,15 @@ export function ProductCard({ product, compact = false }) {
     >
       <div className="product-card__art">
         <div className="mockup-center">
-          <TeeGraphic path={product.shape} fill={product.mockColor} width={compact ? "55%" : "60%"} />
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-card__img"
+            />
+          ) : (
+            <TeeGraphic path={product.shape} fill={product.mockColor} width={compact ? "55%" : "60%"} />
+          )}
         </div>
         {product.badge ? (
           <span
@@ -38,11 +49,15 @@ export function ProductCard({ product, compact = false }) {
             {product.badge}
           </span>
         ) : null}
-        <div className="quick-add">
-          <button type="button" onClick={handleAdd}>
-            Quick Add
-          </button>
-        </div>
+        {!inStock ? (
+          <div className="sold-out-label">Sold Out</div>
+        ) : (
+          <div className="quick-add">
+            <button type="button" onClick={handleAdd}>
+              Quick Add
+            </button>
+          </div>
+        )}
       </div>
       <div className="product-card__body">
         <div className="product-card__top">
@@ -53,12 +68,14 @@ export function ProductCard({ product, compact = false }) {
           <div className="product-card__price">{formatPrice(product.price)}</div>
         </div>
         <div className="product-card__meta">
-          <div className="swatches" aria-label={`${product.name} colors`}>
-            {product.colors.map((color) => (
-              <span key={color} className="swatch" style={{ background: color }} />
-            ))}
-          </div>
-          <span className="size-hint">{product.sizeHint}</span>
+          {product.colors?.length > 0 && (
+            <div className="swatches" aria-label={`${product.name} colors`}>
+              {product.colors.map((color) => (
+                <span key={color} className="swatch" style={{ background: color }} />
+              ))}
+            </div>
+          )}
+          {product.sizeHint && <span className="size-hint">{product.sizeHint}</span>}
         </div>
       </div>
     </motion.article>

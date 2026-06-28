@@ -3,10 +3,46 @@ import { ArrowRight } from "@/components/Icons";
 import { Newsletter } from "@/components/Newsletter";
 import { ProductCard } from "@/components/ProductCard";
 import { TeeGraphic } from "@/components/TeeGraphic";
-import { categories, COLORS, products, quality, steps, TEE_PATH } from "@/lib/data";
+import { categories, COLORS, products as localProducts, quality, steps, TEE_PATH } from "@/lib/data";
+import { createServerClient } from "@/lib/supabase-server";
+import { mapDbProduct } from "@/lib/mapDbProduct";
 
-export default function HomePage() {
-  const featured = products.slice(0, 4);
+export const metadata = {
+  title: "Khud — Wear Your Imprint",
+  description: "Premium ready-made clothing and a custom-print studio. Design yourself."
+};
+
+export default async function HomePage() {
+  let featured = localProducts.slice(0, 4);
+  let dbReviews = [];
+
+  try {
+    const supabase = await createServerClient();
+
+    const { data: dbProducts } = await supabase
+      .from("products")
+      .select("id, name, slug, price, status, is_featured, categories(name), product_media(storage_path, is_primary), product_variants(color, size, stock_quantity)")
+      .eq("status", "active")
+      .eq("is_featured", true)
+      .order("created_at", { ascending: false })
+      .limit(4);
+
+    if (dbProducts?.length) {
+      featured = dbProducts.map(mapDbProduct);
+    }
+
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("id, rating, comment, created_at, profiles(full_name), products(name)")
+      .eq("approved", true)
+      .order("rating", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    dbReviews = reviews ?? [];
+  } catch {
+    // DB not configured yet — local fallback is already set
+  }
 
   return (
     <main>
@@ -155,6 +191,35 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {dbReviews.length > 0 && (
+        <section className="container section" data-reveal>
+          <div className="section-head">
+            <div>
+              <div className="eyebrow">Customer Reviews</div>
+              <h2 className="display display--section">What they say.</h2>
+            </div>
+            <Link href="/reviews/new" className="link-button">
+              Write a review
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="reviews-grid">
+            {dbReviews.map((review) => (
+              <article key={review.id} className="review-card">
+                <div className="review-card__stars">
+                  {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                </div>
+                <p className="review-card__body">{review.comment}</p>
+                <div className="review-card__meta">
+                  <span>{review.profiles?.full_name ?? "Customer"}</span>
+                  {review.products?.name && <span className="review-card__product">· {review.products.name}</span>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section--newsletter" data-reveal>
         <div className="container">

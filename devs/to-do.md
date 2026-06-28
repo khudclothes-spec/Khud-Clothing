@@ -6,55 +6,26 @@
 > The descriptions are written for an AI agent to read and implement directly.
 
 ---
-
-## 🔲 TO DO
-
-*(Move items here when starting a new project and building them out)*
-
----
-
 ## ✅ DONE
-
-These are fully implemented in Lumberwiz and form the reusable foundation for new stores. The only thing that changes per project is the Supabase table schema — the auth, routing, and role patterns stay the same.
-
----
 
 ### 1. Supabase Client Setup
 **Two clients via `@supabase/ssr` — never `@supabase/auth-helpers-nextjs`.**
-- `lib/supabase.ts` exports a **browser client** (`createBrowserClient`) for use in `"use client"` components.
-- `lib/supabase.ts` also exports a **server client** (`createServerClient` with `cookies()` from `next/headers`) for use in Server Components, middleware, and API routes.
-- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public), `SUPABASE_SERVICE_ROLE_KEY` (server-only, never `NEXT_PUBLIC_`).
-- `.env.local` is in `.gitignore` and never committed. Production keys go in the host dashboard (e.g. Vercel).
+- `lib/supabase.ts` — browser client (`createBrowserClient`) for `"use client"` components.
+- `lib/supabase-server.ts` — server client (`createServerClient`) for Server Components + middleware. Also exports `createAdminClient()` (service-role, bypasses RLS).
+- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
-### 2. Supabase Database Tables (Lumberwiz-specific — adapt per project)
-**New projects replace these tables but keep the `profiles` pattern exactly.**
-- `profiles`: `id (uuid, FK → auth.users)`, `role (text, default 'customer')`, `name`, `address`, `phone`, `created_at`. Email is in `auth.users`, linked by FK.
-- `products`: `id`, `name`, `price`, `description`, `category`, `inventory (boolean)`, `image (text, public URL)`, `serial_number`, `created_at`.
-- `reviews`: `id`, `product_id (FK → products)`, `user_id (FK → auth.users, nullable)`, `customer_name`, `rating (int, 1–5)`, `comment`, `category`, `created_at`.
-- All tables: RLS **enabled**. Verify with: `select tablename, rowsecurity from pg_tables where schemaname='public';`
+### 2. Supabase Database Tables
+Schema is in `db/clothing_ecommerce_schema.sql` — matches live Supabase DB.
+Key tables: `profiles`, `categories`, `products`, `product_variants`, `product_media`, `addresses`, `discounts`, `carts`, `cart_items`, `orders`, `order_items`, `order_status_history`, `payments`, `reviews`, `review_media`.
+Run `db/drop_tables.sql` first if migrating from the old schema.
 
 ---
 
 ### 3. Auto-Create Profile on Signup (Database Trigger)
-**On every new auth signup, a `profiles` row is inserted automatically.**
-Run this once in Supabase SQL Editor:
-```sql
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, role)
-  values (new.id, 'customer');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create or replace trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-```
-New users default to `role = 'customer'`. Set admin manually:
+`handle_new_user()` trigger is defined in the schema. Creates a `profiles` row with `role = 'customer'` on every signup.
+To set admin manually:
 ```sql
 update profiles set role = 'admin' where id = 'YOUR-UUID-HERE';
 ```
@@ -62,165 +33,128 @@ update profiles set role = 'admin' where id = 'YOUR-UUID-HERE';
 ---
 
 ### 4. Row Level Security (RLS) Policies
-**RLS is the real security layer — client-side checks are UX only.**
-
-**`profiles` table:**
-- SELECT: `auth.uid() = id` — users can only read their own row. Never `(true)`.
-- UPDATE: `auth.uid() = id` — users update their own profile only.
-
-**`products` table:**
-- SELECT: `true` — public read.
-- INSERT / UPDATE / DELETE: `(select role from profiles where id = auth.uid()) = 'admin'`
-
-**`reviews` table:**
-- SELECT: `true` — public read.
-- INSERT: `auth.uid() is not null` — logged-in users only.
-- DELETE: admin only (same pattern as products).
+Defined in the schema. Key rules:
+- `profiles`: own row only
+- `products`/`categories`: public SELECT, admin-only INSERT/UPDATE/DELETE
+- `orders`/`order_items`: own rows + admin
+- `reviews`: public SELECT (approved), own INSERT/UPDATE
 
 ---
 
 ### 5. Middleware (Server-Side JWT Validation)
-**`middleware.ts` in project root — runs before every request to protected routes.**
-- Uses `createServerClient` from `@supabase/ssr` with `cookies()`.
-- Calls `supabase.auth.getUser()` to validate the JWT server-side.
-- If session is invalid or expired on an `/admin` route → redirect to `/login`.
-- If session is invalid on a general protected route → redirect to `/login`.
-- Matcher config covers `/admin/:path*` and any other protected segments.
-- This is the server enforcement layer. Client-side role checks in components are UX only.
+`middleware.ts` in project root. Uses `createServerClient` + `supabase.auth.getUser()`. Redirects unauthenticated requests to `/admin/*` → `/login`. Matcher: `/admin/:path*`.
 
 ---
 
 ### 6. Admin Layout — Server-Side Role Gate
-**`app/admin/layout.tsx` is a Server Component that checks role before rendering.**
-- Fetches session server-side using the server Supabase client.
-- Queries `profiles` for `role` using the authenticated user's `id`.
-- If `role !== 'admin'` → `redirect('/')` server-side before any HTML is sent.
-- No client-side `useEffect` role check as the primary gate — server redirect is the gate.
-- Client-side check in page components is acceptable as a secondary UX layer only.
+`app/admin/layout.jsx` — async Server Component. Fetches user + profile server-side. Redirects non-admins to `/`. Renders dark sidebar + admin nav.
 
 ---
 
 ### 7. Login / Signup Page
-**`app/login/page.tsx` — single page with two tabs.**
-- Login tab: email + password → `supabase.auth.signInWithPassword()`.
-- Signup tab: email, password, name, address, phone → `supabase.auth.signUp()`, then insert remaining fields into `profiles` (trigger handles `id` + `role`).
-- On login success: fetch `profiles.role`, redirect to `/admin` if admin, else `/`.
-- Error messages: generic for login ("Invalid credentials"). Signup: never confirm whether an email is already registered — use "If this email is available, check your inbox."
-- Logout: `supabase.auth.signOut()` clears the JWT cookie.
+`app/login/page.jsx` + `app/login/LoginForm.jsx`. Two-tab layout (Sign In / Create Account). On login: checks role, redirects admin → `/admin`, customer → `/`. Signup: calls `signUp()` then updates phone in `profiles`. Generic error messages — never confirms email existence.
 
 ---
 
 ### 8. Session Timeout (Idle Auto-Logout)
-**`components/SessionMonitor.tsx` — client component added to root layout.**
-- Tracks `mousemove`, `keydown`, `click`, `scroll` events to detect activity.
-- After 30 minutes of inactivity: show a warning modal ("Session expiring in 2 minutes").
-- After 2 more minutes of no activity: call `supabase.auth.signOut()` (actually invalidates the JWT, not just a UI redirect), then `router.push('/login')`.
-- Reset timer on any activity event.
-- Only runs when a user session is active (check `supabase.auth.getSession()` on mount).
+`components/SessionMonitor.jsx` — mounted in root layout. Tracks `mousemove`, `keydown`, `click`, `scroll`, `touchstart`. Warning modal at 30 min, auto sign-out at 32 min. Only active when a session exists.
 
 ---
 
 ### 9. Navbar — Role-Aware UI
-**`components/Navbar.tsx` — `"use client"` component.**
-- Uses `supabase.auth.onAuthStateChange()` to reactively track session state.
-- If logged out: show Login button linking to `/login`.
-- If logged in as customer: show user name/email + Logout button.
-- If logged in as admin: show user name + Admin Dashboard link + Logout button.
-- Admin link never visible to non-admin users (profile role check on mount).
+`components/SiteShell.jsx` — subscribes to `onAuthStateChange()`. Shows Sign In link when logged out, Sign Out button when logged in, Admin link if role = `admin`. Same logic in mobile menu.
 
 ---
 
 ### 10. Admin Dashboard — CRUD for Products
-**`app/admin/page.tsx` (or layout) — protected by middleware + server role gate.**
-- Fetches all products live from Supabase on load.
-- **Add product**: form with name, price, description, category, inventory toggle, image upload. Image uploads to Supabase Storage bucket `product-images`, saves public URL to `products.image`.
-- **Edit product**: inline or modal form, updates the row via `.update()`.
-- **Delete product**: confirmation prompt, then `.delete()`.
-- All operations refetch the product list on completion for live updates.
-- Admin can also view/delete reviews from a separate `/admin/reviews` sub-page.
+`app/admin/page.jsx` — full product CRUD. Table view, add/edit modal (name, slug, price, category, description, status, image upload, featured toggle), delete with confirm dialog, one-click status toggle. Images upload to `product-media` bucket → `product_media` table.
+**Required Supabase setup**: Create a public storage bucket named `product-media`.
 
 ---
 
 ### 11. Server-Side Product Fetching (SSR)
-**Pages that display products are Server Components — data is in the HTML for SEO.**
-- `app/page.tsx` and `app/category/[name]/page.tsx` are `async` Server Components.
-- They fetch from Supabase using the server client, pass data as props to child client components.
-- No `useEffect` or `useState` for initial product data on these pages.
-- Result: product names, images, and counts appear in raw page source (`Ctrl+U`) — Google can index them.
-- `"use client"` components (carousel, cart, modals) receive data as props and handle interactivity.
+`app/page.jsx` and `app/shop/page.jsx` are `async` Server Components. Fetch active products from Supabase via `createServerClient()`. Falls back to local `lib/data.js` products if DB returns nothing (safe during development). `lib/mapDbProduct.js` maps DB rows → ProductCard format.
 
 ---
 
 ### 12. Inventory / Sold Out Logic
-**`products.inventory` (boolean) controls cart eligibility.**
-- `true` → Add to Cart button is active.
-- `false` → Button is disabled, "Sold Out" label shown, visually greyed out.
-- Check is done in the product card component on render — no extra query needed (field comes with the product fetch).
+`components/ProductCard.jsx` reads `product.inStock`. For DB products: `inStock = status === 'active'`. When `false`, "Sold Out" label shown and Quick Add button disabled. `product.inStock` defaults to `true` for local fallback products.
 
 ---
 
-### 13. Cart & Order Flow (Frontend-Only)
-**Cart state lives in React context — no orders table in the DB.**
-- `CartContext` (or equivalent) manages items array in memory.
-- Placing an order constructs a message string from cart contents and opens one of:
-  - `wa.me/[number]?text=[encoded message]` — WhatsApp
-  - `mailto:lumberwiz@gmail.com?subject=Order&body=[encoded message]` — Email
-  - Instagram link — manual DM
-- User must be logged in before order placement — gate checked at cart drawer level.
-- Cart is client-side only; no server-side price validation (acceptable for manual-fulfillment model).
+### 13. Cart & Order Flow
+`components/CartContext.jsx` has `placeOrder(shippingDetails)` — creates an `orders` row and `order_items` rows in Supabase, then clears the cart. Cart drawer in `SiteShell.jsx` has three steps: bag → checkout form → confirmation. Checkout form collects full_name, phone, address, city, province, postal. All orders are Cash on Delivery (`payment_method: 'cod'`). Sign-in hint shown in bag if user is not authenticated.
 
 ---
 
 ### 14. Password Reset Flow
-**Supabase email-based reset — no custom token logic needed.**
-- `/forgot-password`: calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: '/reset-password' })`.
-- `/reset-password`: reads token from URL, shows new password + confirm fields, calls `supabase.auth.updateUser({ password: newPassword })`.
-- Reset links expire after 1 hour (Supabase default).
-- Redirect URL must be whitelisted in Supabase Dashboard → Auth → URL Configuration.
+`app/forgot-password/page.jsx` — calls `resetPasswordForEmail()` with `redirectTo: NEXT_PUBLIC_SITE_URL/reset-password`. Never reveals whether email exists.
+`app/reset-password/page.jsx` — calls `updateUser({ password })` with the Supabase session token from the URL.
 
 ---
 
 ### 15. Review System
-**`app/reviews/new` — requires login. Home page pulls top reviews from DB.**
-- Submission: product picker (fetched from Supabase) → star rating (1–5, interactive) + comment form → insert into `reviews` table with `product_id`, `customer_name`, `rating`, `comment`, `category` (copied from product).
-- Home page review section: server-side fetch, ordered by `rating desc, created_at desc`, limit 6–8. Replaces all hardcoded testimonials.
-- Shared `StarRating` component: interactive mode for submission form, display mode for home page.
+`components/StarRating.jsx` — shared component, `interactive` prop switches between clickable (form) and display-only modes.
+`app/reviews/new/page.jsx` — requires login (redirects if not). Product picker, star rating, optional title + body. Inserts into `reviews` table (`is_approved: false` — admin must approve in DB).
+Home page (`app/page.jsx`) fetches approved reviews server-side and renders a reviews section when data exists.
 
 ---
 
 ### 16. Data Upload Script (One-Time)
-**`scripts/upload.js` — Node.js CLI to seed the database from local JSON + images.**
-- Reads JSON files from `data/products/`.
-- Maps JSON `id` field → `serial_number` in DB.
-- Uploads images to Supabase Storage `product-images` bucket using the service role key.
-- Inserts product rows with all fields including the public image URL.
-- Uses `upsert` on `serial_number` so re-running is safe.
-- Requires `dotenv` (`npm install dotenv`) and `node scripts/upload.js` to run.
-- Service role key is used here only — never imported into the app.
+`scripts/upload.js` — Node.js CLI. Seeds Supabase `products` table from the local product array. Uses `upsert` on `slug` so re-running is safe. Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`.
+```
+node scripts/upload.js
+```
 
 ---
 
 ### 17. SEO — Metadata & Page Titles
-**Each route exports a `metadata` object or `generateMetadata` function.**
-- Root layout: global fallback title and description.
-- `app/page.tsx`: "Lumberwiz — Premium Timber & Wood Products" + full description.
-- `app/category/[name]/page.tsx`: dynamic title using category name via `generateMetadata`.
-- `app/about/page.tsx`: static title + description.
-- `app/login/page.tsx`: `robots: 'noindex'` — login pages must not appear in Google.
-- All `/admin` routes: `robots: 'noindex'`.
+All public pages export a `metadata` object:
+- `/` → full description + OG tags (in root layout + page)
+- `/shop` → "Shop the Drop"
+- `/customize` → "Customize - Khud"
+- `/size-guide` → "Size Guide"
+- `/about` → "About Khud"
+- `/login` → `robots: 'noindex'`
+- `/admin/*` → `robots: 'noindex'` (in admin layout)
 
 ---
 
-### 18. Storage Bucket (Product Images)
-**Supabase Storage bucket: `product-images` (public).**
-- Public read — images accessible without auth via public URL.
-- INSERT restricted to admin role via storage policy:
+## 🔲 TO DO
+
+### 18. Storage Bucket (Manual Supabase Setup)
+**Supabase Storage bucket: `product-media` (public) — create in Supabase Dashboard.**
+- Set to public read so product images are accessible without auth.
+- Add INSERT storage policy (in Dashboard → Storage → Policies):
   ```sql
   (select role from profiles where id = auth.uid()) = 'admin'
   ```
-- Client enforces `accept="image/*"` for UX. Storage policy is the real gate.
-- Image URL format: `[SUPABASE_URL]/storage/v1/object/public/product-images/[filename]`
+- After creating the bucket, image uploads in the admin dashboard will work.
 
 ---
 
-*Last updated: Lumberwiz v1 — June 2026*
+### 19. Admin Review Moderation
+**Admins should be able to approve / reject submitted reviews.**
+- Add `/admin/reviews` sub-page that lists all reviews with `is_approved = false`.
+- Approve button: `.update({ is_approved: true })`.
+- Reject / delete button: `.delete()`.
+- Approved reviews appear on the home page automatically (SSR fetch already filters by `is_approved = true`).
+
+---
+
+### 20. Admin Orders View
+**`/admin/orders` sub-page to view and manage orders.**
+- List orders with: order_number, status, user email, total, created_at.
+- Status update dropdown (pending → confirmed → shipped → delivered).
+- Status changes auto-log to `order_status_history` via the DB trigger already in place.
+
+---
+
+### 21. Product Variants (Size / Color)
+**Variants drive the real inventory system.**
+- Add variant management to the admin product form: size + color combinations, each with `sku` and `stock_quantity`.
+- Cart items should reference `variant_id` instead of just product name.
+- `inStock` logic should be: `any variant has stock_quantity > 0`.
+- This is complex — do only after the core CRUD is stable and tested.
+
+---
