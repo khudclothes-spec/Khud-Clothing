@@ -107,8 +107,11 @@ export function CartProvider({ children }) {
       const orderItems = cart.map((item) => ({
         order_id: order.id,
         product_id: item.id ?? null,
+        variant_id: item.variantId ?? null,
         unit_price: item.price,
-        quantity: item.qty
+        quantity: item.qty,
+        size: item.size ?? null,
+        color: item.color ?? null
       }));
 
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);

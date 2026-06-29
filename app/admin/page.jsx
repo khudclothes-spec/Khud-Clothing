@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { customColors, customSizes } from "@/lib/data";
 import { ChevronDown, Close } from "@/components/Icons";
+import { ProductMediaManager } from "@/components/ProductMediaManager";
 
 const STATUS_LABELS = { draft: "Draft", active: "Active", archived: "Archived" };
 const COLOR_OPTIONS = customColors.map((c) => c.name); // Bone, Black, Clay, Olive, Grey
@@ -47,7 +48,7 @@ export default function AdminProductsPage() {
     const [{ data: prods }, { data: cats }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, slug, price, status, is_featured, category_id, short_description, description, created_at, categories(name), product_media(id, storage_path, is_primary), product_variants(id, color, size, stock_quantity, sku, is_active)")
+        .select("id, name, slug, price, status, is_featured, category_id, short_description, description, created_at, categories(name), product_media(id, storage_path, is_primary, color, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity, sku, is_active)")
         .order("created_at", { ascending: false }),
       supabase.from("categories").select("id, name").eq("is_active", true).order("name")
     ]);
@@ -187,7 +188,6 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
     status: product.status ?? "draft",
     is_featured: product.is_featured ?? false
   }));
-  const [imageFile, setImageFile] = useState(null);
   const [variants, setVariants] = useState(product.product_variants ?? []);
   const [newVariant, setNewVariant] = useState({ color: COLOR_OPTIONS[0], customColor: "", size: SIZE_OPTIONS[0], stock_quantity: "" });
   const [saving, setSaving] = useState(false);
@@ -205,15 +205,6 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
       if (name === "name") updated.slug = slugify(value);
       return updated;
     });
-  }
-
-  async function uploadImage(productId) {
-    if (!imageFile) return null;
-    const ext = imageFile.name.split(".").pop();
-    const path = `products/${productId}/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("product-images").upload(path, imageFile, { upsert: true });
-    if (upErr) throw new Error(upErr.message);
-    return path;
   }
 
   async function saveProduct(e) {
@@ -235,12 +226,6 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
       const { error: upErr } = await supabase.from("products").update(payload).eq("id", product.id);
       if (upErr) throw new Error(upErr.message);
 
-      if (imageFile) {
-        const path = await uploadImage(product.id);
-        await supabase.from("product_media").delete().eq("product_id", product.id).eq("is_primary", true);
-        await supabase.from("product_media").insert({ product_id: product.id, storage_path: path, is_primary: true });
-      }
-
       // Persist any stock edits to existing variants
       for (const v of variants) {
         const original = (product.product_variants ?? []).find((o) => o.id === v.id);
@@ -249,7 +234,6 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
         }
       }
 
-      setImageFile(null);
       await onChanged();
     } catch (err) {
       setError(err.message);
@@ -371,15 +355,9 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
                   <textarea name="description" className="form-input form-textarea" rows={3} value={form.description} onChange={handleField} />
                 </div>
 
-                <div className="admin-form-row admin-form-row--2">
-                  <div className="form-group">
-                    <label className="form-label">Replace image</label>
-                    <input type="file" accept="image/*" className="form-input form-file" onChange={(e) => setImageFile(e.target.files[0] ?? null)} />
-                  </div>
-                  <div className="form-check" style={{ alignSelf: "end" }}>
-                    <input type="checkbox" id={`feat-${product.id}`} name="is_featured" checked={form.is_featured} onChange={handleField} className="form-checkbox" />
-                    <label htmlFor={`feat-${product.id}`} className="form-check-label">Featured product</label>
-                  </div>
+                <div className="form-check">
+                  <input type="checkbox" id={`feat-${product.id}`} name="is_featured" checked={form.is_featured} onChange={handleField} className="form-checkbox" />
+                  <label htmlFor={`feat-${product.id}`} className="form-check-label">Featured product</label>
                 </div>
 
                 <div className="admin-detail__section-title">Variants — size, colour &amp; stock</div>
@@ -442,6 +420,16 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
                   <input type="number" min="0" className="form-input variant-stock-input" placeholder="Qty" value={newVariant.stock_quantity} onChange={(e) => setNewVariant({ ...newVariant, stock_quantity: e.target.value })} />
                   <button type="button" className="button button--outline" onClick={addVariant}>+ Add variant</button>
                 </div>
+
+                <ProductMediaManager
+                  productId={product.id}
+                  slug={product.slug}
+                  colors={[...new Set((product.product_variants ?? []).map((v) => v.color).filter(Boolean))]}
+                  media={product.product_media ?? []}
+                  supabase={supabase}
+                  getPublicUrl={getPublicUrl}
+                  onChanged={onChanged}
+                />
 
                 <div className="admin-detail__foot">
                   <button type="button" className="button button--outline" onClick={onToggleExpand}>Cancel</button>
@@ -604,8 +592,9 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
 
           <div className="admin-form-row admin-form-row--2">
             <div className="form-group">
-              <label className="form-label">Image</label>
+              <label className="form-label">Main image (optional)</label>
               <input type="file" accept="image/*" className="form-input form-file" onChange={(e) => setImageFile(e.target.files[0] ?? null)} />
+              <span className="slug-preview">Per-colour images are added after saving, from the product editor.</span>
             </div>
             <div className="form-check" style={{ alignSelf: "end" }}>
               <input type="checkbox" id="add-featured" name="is_featured" checked={form.is_featured} onChange={handleField} className="form-checkbox" />

@@ -8,7 +8,7 @@ function slugify(text) {
 }
 
 function emptyForm() {
-  return { name: "", slug: "", description: "", is_active: true };
+  return { name: "", slug: "", description: "", is_active: true, image_url: "" };
 }
 
 export default function AdminCategoriesPage() {
@@ -20,6 +20,8 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [catImages, setCatImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -27,14 +29,42 @@ export default function AdminCategoriesPage() {
     setLoading(true);
     const { data } = await supabase
       .from("categories")
-      .select("id, name, slug, description, is_active, created_at")
+      .select("id, name, slug, description, is_active, image_url, created_at")
       .order("name");
     setCategories(data ?? []);
     setLoading(false);
   }
 
+  function getPublicUrl(storagePath) {
+    if (!storagePath) return null;
+    return supabase.storage.from("product-images").getPublicUrl(storagePath).data.publicUrl;
+  }
+
+  // All product photos in a category, so the admin can pick one as the cover.
+  async function fetchCategoryImages(categoryId) {
+    setLoadingImages(true);
+    setCatImages([]);
+    const { data } = await supabase
+      .from("products")
+      .select("name, product_media(storage_path, is_primary, is_color_cover, color)")
+      .eq("category_id", categoryId);
+
+    const imgs = [];
+    (data ?? []).forEach((p) => {
+      (p.product_media ?? []).forEach((m) => {
+        const url = getPublicUrl(m.storage_path);
+        if (url) imgs.push({ url, label: p.name, color: m.color, isPrimary: m.is_primary });
+      });
+    });
+    // Show product main images first, then the rest.
+    imgs.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+    setCatImages(imgs);
+    setLoadingImages(false);
+  }
+
   function openAdd() {
     setForm(emptyForm());
+    setCatImages([]);
     setError("");
     setModal({ mode: "add" });
   }
@@ -44,10 +74,12 @@ export default function AdminCategoriesPage() {
       name: category.name ?? "",
       slug: category.slug ?? "",
       description: category.description ?? "",
-      is_active: category.is_active ?? true
+      is_active: category.is_active ?? true,
+      image_url: category.image_url ?? ""
     });
     setError("");
     setModal({ mode: "edit", category });
+    fetchCategoryImages(category.id);
   }
 
   function closeModal() {
@@ -73,7 +105,8 @@ export default function AdminCategoriesPage() {
       name: form.name.trim(),
       slug: form.slug.trim(),
       description: form.description.trim() || null,
-      is_active: form.is_active
+      is_active: form.is_active,
+      image_url: form.image_url || null
     };
     try {
       if (modal.mode === "add") {
@@ -151,7 +184,7 @@ export default function AdminCategoriesPage() {
 
       {modal && (
         <div className="admin-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeModal()}>
-          <div className="admin-modal admin-modal--sm">
+          <div className="admin-modal">
             <div className="admin-modal-head">
               <h2 className="admin-modal-title">{modal.mode === "add" ? "Add Category" : "Edit Category"}</h2>
               <button type="button" className="admin-modal-close" onClick={closeModal}>✕</button>
@@ -174,6 +207,46 @@ export default function AdminCategoriesPage() {
                 <label className="form-label">Description</label>
                 <textarea name="description" className="form-input form-textarea" rows={3} value={form.description} onChange={handleField} placeholder="Optional" />
               </div>
+
+              {modal.mode === "edit" && (
+                <div className="form-group">
+                  <label className="form-label">Cover image</label>
+                  <p className="admin-hint" style={{ marginTop: 0 }}>
+                    Pick a product photo from this category. It's shown wherever the category appears (shop &amp; home grids).
+                  </p>
+
+                  {form.image_url && (
+                    <div className="cat-cover-current">
+                      <img src={form.image_url} alt="Selected cover" />
+                      <button type="button" className="button button--outline" onClick={() => setForm((f) => ({ ...f, image_url: "" }))}>
+                        Remove cover
+                      </button>
+                    </div>
+                  )}
+
+                  {loadingImages ? (
+                    <div className="admin-muted">Loading photos…</div>
+                  ) : catImages.length === 0 ? (
+                    <div className="admin-muted">No product photos in this category yet. Upload images on a product first.</div>
+                  ) : (
+                    <div className="cat-cover-grid">
+                      {catImages.map((img, i) => (
+                        <button
+                          type="button"
+                          key={`${img.url}-${i}`}
+                          className={`cat-cover-thumb ${form.image_url === img.url ? "is-selected" : ""}`}
+                          onClick={() => setForm((f) => ({ ...f, image_url: img.url }))}
+                          title={img.color ? `${img.label} · ${img.color}` : img.label}
+                        >
+                          <img src={img.url} alt={img.label} />
+                          {form.image_url === img.url && <span className="cat-cover-check">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="form-check">
                 <input type="checkbox" id="cat-active" name="is_active" checked={form.is_active} onChange={handleField} className="form-checkbox" />
                 <label htmlFor="cat-active" className="form-check-label">Active (visible on the storefront)</label>

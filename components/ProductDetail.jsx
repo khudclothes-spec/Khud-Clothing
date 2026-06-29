@@ -1,0 +1,290 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { ArrowRight } from "@/components/Icons";
+import { TeeGraphic } from "@/components/TeeGraphic";
+import { useCart } from "@/components/CartContext";
+import { COLORS, TEE_PATH, customColors, formatPrice } from "@/lib/data";
+
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL"];
+
+const COLOR_HEX = customColors.reduce((acc, c) => {
+  acc[c.name.toLowerCase()] = c.hex;
+  return acc;
+}, {});
+
+function swatchFor(name) {
+  return COLOR_HEX[name?.toLowerCase()] ?? COLORS.taupe;
+}
+
+function sortSizes(sizes) {
+  return [...sizes].sort((a, b) => {
+    const ia = SIZE_ORDER.indexOf(String(a).toUpperCase());
+    const ib = SIZE_ORDER.indexOf(String(b).toUpperCase());
+    if (ia === -1 && ib === -1) return String(a).localeCompare(String(b));
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+
+export function ProductDetail({ product }) {
+  const { addItem } = useCart();
+
+  // Distinct colours in the order they appear in the variants
+  const colors = useMemo(() => {
+    const seen = [];
+    product.variants.forEach((v) => {
+      if (v.color && !seen.includes(v.color)) seen.push(v.color);
+    });
+    return seen;
+  }, [product.variants]);
+
+  // Full size scale across every colour (so the size row is consistent)
+  const sizeScale = useMemo(() => {
+    const set = new Set();
+    product.variants.forEach((v) => v.size && set.add(v.size));
+    return sortSizes([...set]);
+  }, [product.variants]);
+
+  // "color|size" -> variant
+  const variantMap = useMemo(() => {
+    const m = {};
+    product.variants.forEach((v) => { m[`${v.color}|${v.size}`] = v; });
+    return m;
+  }, [product.variants]);
+
+  const colorAvailable = (color) =>
+    product.variants.some((v) => v.color === color && v.stock > 0);
+
+  const sizeAvailableIn = (color, size) =>
+    (variantMap[`${color}|${size}`]?.stock ?? 0) > 0;
+
+  const firstAvailableSize = (color) =>
+    sizeScale.find((s) => sizeAvailableIn(color, s)) ?? null;
+
+  // Images grouped by colour, cover first then sort order
+  const mediaByColor = useMemo(() => {
+    const map = {};
+    product.media.forEach((m) => {
+      const key = m.color ?? "__none__";
+      (map[key] ||= []).push(m);
+    });
+    Object.values(map).forEach((list) =>
+      list.sort(
+        (a, b) => Number(b.isColorCover) - Number(a.isColorCover) || a.sortOrder - b.sortOrder
+      )
+    );
+    return map;
+  }, [product.media]);
+
+  const initialColor = colors.find((c) => colorAvailable(c)) ?? colors[0] ?? null;
+  const [selectedColor, setSelectedColor] = useState(initialColor);
+  const [selectedSize, setSelectedSize] = useState(() => firstAvailableSize(initialColor));
+  const [imgIndex, setImgIndex] = useState(0);
+
+  const images = useMemo(() => {
+    const forColor = selectedColor ? mediaByColor[selectedColor] : null;
+    if (forColor && forColor.length) return forColor;
+    if (mediaByColor["__none__"]?.length) return mediaByColor["__none__"];
+    return product.media.length ? [...product.media] : [];
+  }, [selectedColor, mediaByColor, product.media]);
+
+  const currentImage = images[Math.min(imgIndex, Math.max(images.length - 1, 0))] ?? null;
+  const colorIsAvailable = selectedColor ? colorAvailable(selectedColor) : false;
+  const sizeIsAvailable =
+    selectedColor && selectedSize ? sizeAvailableIn(selectedColor, selectedSize) : false;
+  const canAdd = colorIsAvailable && sizeIsAvailable;
+
+  function pickColor(color) {
+    setSelectedColor(color);
+    setImgIndex(0);
+    setSelectedSize(firstAvailableSize(color));
+  }
+
+  function prevImg() {
+    setImgIndex((i) => (images.length ? (i - 1 + images.length) % images.length : 0));
+  }
+  function nextImg() {
+    setImgIndex((i) => (images.length ? (i + 1) % images.length : 0));
+  }
+
+  function handleAdd() {
+    if (!canAdd) return;
+    const variant = variantMap[`${selectedColor}|${selectedSize}`];
+    addItem({
+      key: `${product.id}-${selectedColor}-${selectedSize}`,
+      id: product.id,
+      variantId: variant?.id ?? null,
+      name: product.name,
+      meta: `${selectedColor} · ${selectedSize}`,
+      color: selectedColor,
+      size: selectedSize,
+      price: product.price,
+      image: currentImage?.url ?? null
+    });
+  }
+
+  const addLabel = !colorIsAvailable
+    ? "Sold out"
+    : !selectedSize || !sizeIsAvailable
+      ? "Select a size"
+      : "Add to bag";
+
+  return (
+    <main className="container product-detail" data-reveal>
+      <nav className="pd-crumbs">
+        <Link href="/shop" className="crumb-link">Shop</Link>
+        {product.category?.slug && (
+          <>
+            {" / "}
+            <Link href={`/shop/${product.category.slug}`} className="crumb-link">
+              {product.category.name}
+            </Link>
+          </>
+        )}
+        {" / "}
+        <span>{product.name}</span>
+      </nav>
+
+      <div className="pd-layout">
+        {/* Gallery */}
+        <div className="pd-gallery">
+          <div className="pd-main">
+            {currentImage ? (
+              <img src={currentImage.url} alt={product.name} className="pd-main__img" />
+            ) : (
+              <div className="pd-main__placeholder">
+                <TeeGraphic path={TEE_PATH} fill={COLORS.ink} width="48%" />
+              </div>
+            )}
+
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="pd-arrow pd-arrow--prev"
+                  onClick={prevImg}
+                  aria-label="Previous image"
+                >
+                  <ArrowRight size={18} />
+                </button>
+                <button
+                  type="button"
+                  className="pd-arrow pd-arrow--next"
+                  onClick={nextImg}
+                  aria-label="Next image"
+                >
+                  <ArrowRight size={18} />
+                </button>
+                <div className="pd-counter">{Math.min(imgIndex + 1, images.length)} / {images.length}</div>
+              </>
+            )}
+
+            {!colorIsAvailable && <span className="pd-soldout-tag">Sold out</span>}
+          </div>
+
+          {images.length > 1 && (
+            <div className="pd-thumbs">
+              {images.map((img, i) => (
+                <button
+                  type="button"
+                  key={img.id ?? i}
+                  className={`pd-thumb ${i === imgIndex ? "is-active" : ""}`}
+                  onClick={() => setImgIndex(i)}
+                  aria-label={`View image ${i + 1}`}
+                >
+                  <img src={img.url} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Info / options */}
+        <div className="pd-info">
+          {product.category?.name && <div className="eyebrow">{product.category.name}</div>}
+          <h1 className="display display--large pd-title">{product.name}</h1>
+
+          <div className="pd-price">
+            {formatPrice(product.price)}
+            {product.compareAtPrice && product.compareAtPrice > product.price && (
+              <span className="pd-price__compare">{formatPrice(product.compareAtPrice)}</span>
+            )}
+          </div>
+
+          {product.shortDescription && <p className="pd-short">{product.shortDescription}</p>}
+
+          {/* Colours */}
+          {colors.length > 0 && (
+            <div className="pd-option">
+              <div className="pd-option__label">
+                Colour{selectedColor ? <strong> · {selectedColor}</strong> : null}
+              </div>
+              <div className="pd-colors">
+                {colors.map((color) => {
+                  const avail = colorAvailable(color);
+                  return (
+                    <button
+                      type="button"
+                      key={color}
+                      className={`pd-color ${selectedColor === color ? "is-selected" : ""} ${avail ? "" : "is-unavailable"}`}
+                      onClick={() => pickColor(color)}
+                      title={avail ? color : `${color} — sold out`}
+                    >
+                      <span className="pd-color__swatch" style={{ background: swatchFor(color) }} />
+                      <span className="pd-color__name">{color}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sizes */}
+          {sizeScale.length > 0 && (
+            <div className="pd-option">
+              <div className="pd-option__label">Size</div>
+              <div className="pd-sizes">
+                {sizeScale.map((size) => {
+                  const avail = selectedColor ? sizeAvailableIn(selectedColor, size) : false;
+                  return (
+                    <button
+                      type="button"
+                      key={size}
+                      className={`pd-size ${selectedSize === size ? "is-selected" : ""} ${avail ? "" : "is-unavailable"}`}
+                      onClick={() => avail && setSelectedSize(size)}
+                      disabled={!avail}
+                      aria-disabled={!avail}
+                      title={avail ? size : `${size} — unavailable in ${selectedColor}`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="button button--dark pd-add"
+            onClick={handleAdd}
+            disabled={!canAdd}
+          >
+            {addLabel}
+            {canAdd && <ArrowRight />}
+          </button>
+
+          {product.description && (
+            <div className="pd-description">
+              <div className="pd-description__title">Details</div>
+              <p>{product.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

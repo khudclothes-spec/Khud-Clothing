@@ -1,0 +1,33 @@
+-- =====================================================
+-- Migration 009: Storage bucket note
+-- =====================================================
+--
+-- The schema defines the storage bucket as: product-images
+-- The application code was using:            product-media
+--
+-- The code has been corrected to use product-images.
+-- If a bucket named 'product-media' was previously created
+-- in your Supabase project, either:
+--
+--   Option A (preferred): Keep the 'product-images' bucket
+--   (already created by the base schema). All code now
+--   references 'product-images'. No SQL action needed.
+--
+--   Option B: If you previously created 'product-media' and
+--   have uploaded images there, run these steps manually:
+--   1. Download all files from the 'product-media' bucket.
+--   2. Upload them to 'product-images'.
+--   3. Update storage_path values in product_media table if paths changed.
+--   4. Delete the 'product-media' bucket.
+--
+-- The base schema SQL already inserts the correct bucket:
+--   INSERT INTO storage.buckets (id, name, public)
+--   VALUES ('product-images', 'product-images', true)
+--
+-- Storage policies for 'product-images' are already defined
+-- in the base schema SQL file. No additional SQL needed here.
+--
+-- This file is informational only. No SQL to execute.
+-- =====================================================
+
+SELECT 'Storage bucket note: see comments above for manual steps' AS note;

@@ -25,6 +25,9 @@ function ShellChrome({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const timers = useRef([]);
+  const fromPath = useRef(null);
+  const pendingHref = useRef(null);
+  const coverStart = useRef(0);
   const revealObserver = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [phase, setPhase] = useState("");
@@ -32,6 +35,7 @@ function ShellChrome({ children }) {
   const [authUser, setAuthUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [shopCategories, setShopCategories] = useState([]);
   const supabase = createClient();
 
   const fetchProfile = useCallback(async (userId) => {
@@ -63,6 +67,16 @@ function ShellChrome({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Active categories for the footer "Shop" column
+  useEffect(() => {
+    supabase
+      .from("categories")
+      .select("name, slug")
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => setShopCategories(data ?? []));
+  }, []);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     setAuthUser(null);
@@ -76,6 +90,24 @@ function ShellChrome({ children }) {
 
   useEffect(() => {
     setMenuOpen(false);
+  }, [pathname]);
+
+  // Reveal the page only once the new route has actually committed (its server
+  // data is loaded), so the 3-panel transition never finishes before the page
+  // swaps. A safety timer in navigate() guards against a stalled navigation.
+  useEffect(() => {
+    if (!pendingHref.current) return;
+    if (pathname === fromPath.current) return; // navigation not committed yet
+
+    pendingHref.current = null;
+    const MIN_COVER = 720; // keep covered until the panels finish drawing down
+    const elapsed = Date.now() - coverStart.current;
+    const hold = Math.max(120, MIN_COVER - elapsed);
+
+    timers.current.push(
+      setTimeout(() => setPhase("is-revealing"), hold),
+      setTimeout(() => setPhase(""), hold + 580)
+    );
   }, [pathname]);
 
   useEffect(() => {
@@ -117,11 +149,21 @@ function ShellChrome({ children }) {
     }
 
     timers.current.forEach((timer) => clearTimeout(timer));
+    fromPath.current = pathname;
+    pendingHref.current = href;
+    coverStart.current = Date.now();
     setPhase("is-covering");
+
     timers.current = [
-      setTimeout(() => router.push(href), 430),
-      setTimeout(() => setPhase("is-revealing"), 520),
-      setTimeout(() => setPhase(""), 1020)
+      // Kick off the route fetch right away so it loads *under* the cover.
+      setTimeout(() => router.push(href), 80),
+      // Safety net: if the navigation never commits, reveal anyway.
+      setTimeout(() => {
+        if (!pendingHref.current) return;
+        pendingHref.current = null;
+        setPhase("is-revealing");
+        timers.current.push(setTimeout(() => setPhase(""), 580));
+      }, 3500)
     ];
   }
 
@@ -260,7 +302,7 @@ function ShellChrome({ children }) {
 
       {children}
 
-      <Footer handleLink={handleLink} />
+      <Footer handleLink={handleLink} shopCategories={shopCategories} />
       <CartDrawer navigate={navigate} authUser={authUser} />
     </div>
   );
@@ -347,11 +389,12 @@ function UserMenu({ displayName, isAdmin, onLogout, onNavigate }) {
   );
 }
 
-function Footer({ handleLink }) {
+function Footer({ handleLink, shopCategories = [] }) {
+  // Only active categories (from the DB) + a Customize link.
   const shopLinks = [
     { label: "All pieces", href: "/shop" },
-    { label: "Oversized Tees", href: "/shop" },
-    { label: "Hoodies", href: "/shop" },
+    ...shopCategories.map((c) => ({ label: c.name, href: `/shop/${c.slug}` })),
+    { label: "Customize", href: "/customize" },
     { label: "Size Guide", href: "/size-guide" }
   ];
   const studioLinks = [
@@ -359,6 +402,13 @@ function Footer({ handleLink }) {
     { label: "About Khud", href: "/about" },
     { label: "Our philosophy", href: "/about" },
     { label: "Quality promise", href: "/about" }
+  ];
+
+  // Placeholder social links — swap the href values in once the handles are live.
+  const socials = [
+    { label: "Instagram", href: "#" },
+    { label: "Instagram DM", href: "#" },
+    { label: "WhatsApp", href: "#" }
   ];
 
   return (
@@ -377,19 +427,25 @@ function Footer({ handleLink }) {
 
           <div>
             <div className="footer-title">Connect</div>
-            {["Instagram", "TikTok", "Pinterest", "WhatsApp"].map((label) => (
-              <span key={label} className="footer-text">
-                {label}
-              </span>
+            {socials.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                className="footer-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {social.label}
+              </a>
             ))}
-            <div className="footer-text" style={{ marginTop: 10 }}>
-              hello@khud.studio
-            </div>
+            <a href="mailto:khudclothes@gmail.com" className="footer-text" style={{ marginTop: 10 }}>
+              khudclothes@gmail.com
+            </a>
           </div>
         </div>
         <div className="footer-bottom">
           <span>(c) 2026 Khud. All rights reserved.</span>
-          <span>Karachi - Lahore - Worldwide shipping</span>
+          <span>Islamabad and nationwide shipping</span>
         </div>
       </div>
     </footer>

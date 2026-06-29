@@ -19,7 +19,7 @@ export default async function ShopPage() {
     const supabase = await createServerClient();
     const { data: cats } = await supabase
       .from("categories")
-      .select("id, name, slug, description")
+      .select("id, name, slug, description, image_url")
       .eq("is_active", true)
       .order("name");
 
@@ -38,6 +38,7 @@ export default async function ShopPage() {
         name: c.name,
         slug: c.slug,
         description: c.description,
+        image: c.image_url ?? null,
         count: `${counts[c.id] ?? 0} ${(counts[c.id] ?? 0) === 1 ? "style" : "styles"}`
       }));
     }
@@ -66,7 +67,11 @@ export default async function ShopPage() {
             const inner = (
               <>
                 <div className="category-card__art">
-                  <TeeGraphic fill={fill} width="50%" opacity={0.85} />
+                  {category.image ? (
+                    <img src={category.image} alt={category.name} className="category-card__photo" />
+                  ) : (
+                    <TeeGraphic fill={fill} width="50%" opacity={0.85} />
+                  )}
                   <span className="category-card__count">{category.count}</span>
                 </div>
                 <div className="category-card__body">
