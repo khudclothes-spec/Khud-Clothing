@@ -10,6 +10,8 @@ Before starting any task, check `.claude/skills/` for a relevant skill:
 | `brand` | Brand consistency, logo usage, color palette, voice/tone |
 | `design-system` | Design tokens, component specs, Tailwind integration |
 | `ui-styling` | shadcn/ui components, Tailwind utilities, responsive patterns |
+| `framer-motion` | responsive patterns, animation |
+| `owasp-security` | security audit |
 
 If a relevant skill exists, follow it. Otherwise use your own knowledge.
 
@@ -21,3 +23,5 @@ If a relevant skill exists, follow it. Otherwise use your own knowledge.
 - **Theme**: Warm neutral palette — bone `#F4EFE6`, ink `#11100E`, clay `#A94732`, brass `#B99149`
 - **Pages**: `/` Home, `/shop`, `/customize`, `/size-guide`, `/about`
 - **Key files**: `app/globals.css` (all styles), `lib/data.js` (all content data), `components/SiteShell.jsx` (nav + cart + footer)
+
+At the end of each prompt update AI_AGENT_CODEBASE_GUIDE.md accordingly

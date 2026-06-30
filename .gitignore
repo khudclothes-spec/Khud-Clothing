@@ -43,6 +43,7 @@ ehthumbs.db
 # Claude AI tooling — never commit
 .claude/
 SKILLS.md
+CLAUDE.md
 
 # TypeScript
 *.tsbuildinfo

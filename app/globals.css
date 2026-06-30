@@ -4448,3 +4448,1016 @@ svg {
   font-size: 12px;
   font-weight: 700;
 }
+
+/* ============================================================================
+   Custom Studio (Fabric.js editor) — /customize
+   ========================================================================== */
+
+.button--ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--taupe);
+}
+
+.button--ghost:hover {
+  background: var(--cream);
+  border-color: var(--charcoal);
+}
+
+.studio {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 24px 140px;
+}
+
+/* --- garment / colour / size bar ------------------------------------------ */
+.studio-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 40px;
+  align-items: flex-end;
+  padding: 20px 22px;
+  border: 1px solid var(--taupe);
+  border-radius: 6px;
+  background: var(--cream);
+}
+
+.studio-bar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studio-bar__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+
+.studio-garments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-garment-card {
+  width: 84px;
+  padding: 10px 6px;
+}
+
+.studio-garment-card .choice-card__svg {
+  margin-bottom: 4px;
+}
+
+/* --- main 3-panel grid ----------------------------------------------------- */
+.studio-grid {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 248px;
+  gap: 22px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.studio-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.studio-panel--center {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.studio-section {
+  padding: 18px;
+  border: 1px solid var(--taupe);
+  border-radius: 6px;
+  background: var(--cream);
+}
+
+.studio-section__title {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* --- add elements ---------------------------------------------------------- */
+.studio-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.studio-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 4px;
+  background: var(--bone);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.studio-add:hover:not(:disabled) {
+  border-color: var(--clay);
+  transform: translateY(-2px);
+}
+
+.studio-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.studio-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--charcoal);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.studio-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* --- text controls --------------------------------------------------------- */
+.studio-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.studio-field__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+
+.studio-field__label strong {
+  color: var(--clay);
+}
+
+.studio-input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 3px;
+  background: var(--bone);
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.studio-input:focus {
+  border-color: var(--clay);
+}
+
+.studio-input--area {
+  resize: vertical;
+  min-height: 48px;
+  line-height: 1.4;
+}
+
+.studio-range {
+  width: 100%;
+  accent-color: var(--clay);
+}
+
+.studio-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.studio-toggle {
+  flex: 1;
+  min-height: 38px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 3px;
+  background: var(--bone);
+  color: var(--ink);
+  font-size: 14px;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.studio-toggle:hover {
+  border-color: var(--charcoal);
+}
+
+.studio-toggle.is-on {
+  border-color: var(--clay);
+  background: var(--clay);
+  color: var(--bone);
+}
+
+.studio-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--taupe);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.studio-swatch:hover {
+  transform: scale(1.1);
+}
+
+.studio-swatch.is-selected {
+  border-color: var(--clay);
+}
+
+.studio-swatch--custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(red, orange, yellow, lime, aqua, blue, magenta, red);
+}
+
+.studio-swatch--custom input {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* --- layer controls -------------------------------------------------------- */
+.studio-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studio-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.studio-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 10px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 3px;
+  background: var(--bone);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.studio-action:hover:not(:disabled) {
+  border-color: var(--charcoal);
+}
+
+.studio-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.studio-action--danger {
+  color: var(--clay);
+}
+
+.studio-action--danger:hover:not(:disabled) {
+  border-color: var(--clay);
+  background: var(--clay);
+  color: var(--bone);
+}
+
+.studio-clear {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.studio-hint-muted {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* --- printable area selector ---------------------------------------------- */
+.studio-views {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studio-view {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 5px;
+  background: var(--bone);
+  text-align: left;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.studio-view:hover {
+  border-color: var(--charcoal);
+  transform: translateY(-2px);
+}
+
+.studio-view.is-active {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 1px var(--clay);
+}
+
+.studio-view__thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 54px;
+  height: 60px;
+  border-radius: 3px;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.studio-view__thumb .studio-garment__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.studio-view__region {
+  position: absolute;
+  border: 1px dashed var(--clay);
+  background: rgba(169, 71, 50, 0.08);
+  border-radius: 1px;
+}
+
+.studio-view__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--clay);
+  color: var(--bone);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.studio-view__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.studio-view__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.studio-view__sub {
+  font-size: 11px;
+  color: var(--charcoal);
+}
+
+/* --- canvas stage ---------------------------------------------------------- */
+.studio-stage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.studio-canvas-frame {
+  position: relative;
+  max-width: 100%;
+  border-radius: 8px;
+  background: radial-gradient(120% 90% at 50% 0%, var(--cream), var(--bone));
+  box-shadow: inset 0 0 0 1px var(--taupe), 0 18px 44px rgba(17, 16, 14, 0.1);
+}
+
+.studio-garment {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 6%;
+  pointer-events: none;
+}
+
+.studio-garment__svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 12px 18px rgba(17, 16, 14, 0.14));
+}
+
+.studio-canvas-frame .canvas-container {
+  position: relative !important;
+  z-index: 1;
+}
+
+.studio-canvas__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--charcoal);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.studio-stage__hint {
+  margin: 0;
+  max-width: 420px;
+  text-align: center;
+  color: var(--charcoal);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* --- sticky action bar ----------------------------------------------------- */
+.studio-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 16px 22px;
+  border: 1px solid var(--taupe);
+  border-radius: 6px;
+  background: rgba(251, 248, 241, 0.94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -6px 24px rgba(17, 16, 14, 0.06);
+}
+
+.studio-actionbar__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.studio-actionbar__product {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.studio-actionbar__price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--clay);
+}
+
+.studio-preview-btn {
+  min-width: 240px;
+}
+
+/* --- toast ----------------------------------------------------------------- */
+.studio-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 13px 16px;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bone);
+  box-shadow: var(--shadow-soft);
+  animation: riseIn 0.3s ease;
+}
+
+.studio-toast--error {
+  background: var(--clay);
+}
+
+.studio-toast--success {
+  background: var(--olive);
+}
+
+.studio-toast .plain-icon {
+  color: var(--bone);
+  opacity: 0.85;
+}
+
+/* --- modals ---------------------------------------------------------------- */
+.studio-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.studio-modal-layer .overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 16, 14, 0.5);
+  border: none;
+}
+
+.studio-modal {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 26px;
+  border-radius: 8px;
+  background: var(--cream);
+  box-shadow: 0 30px 70px rgba(17, 16, 14, 0.3);
+  animation: riseIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.studio-modal--compact {
+  width: min(440px, 100%);
+  text-align: center;
+}
+
+.studio-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.studio-modal__title {
+  margin: 6px 0 0;
+  font-family: "Bodoni Moda", Georgia, serif;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.studio-modal__copy {
+  margin: 14px 0 24px;
+  color: var(--charcoal);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.studio-modal__body {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.studio-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+}
+
+.studio-proof {
+  margin: 0;
+}
+
+.studio-proof__art {
+  position: relative;
+  aspect-ratio: 1 / 1.1;
+  border-radius: 6px;
+  background: var(--bone);
+  box-shadow: inset 0 0 0 1px var(--taupe);
+  overflow: hidden;
+}
+
+.studio-proof__art .studio-garment__svg {
+  width: 100%;
+  height: 100%;
+  padding: 8%;
+}
+
+.studio-proof__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.studio-proof__cap {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+
+.studio-modal__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 6px;
+  background: var(--bone);
+  border: 1px solid var(--taupe);
+}
+
+.studio-summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+.studio-summary-line strong {
+  color: var(--ink);
+  text-align: right;
+}
+
+.studio-summary-line--price {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--taupe);
+}
+
+.studio-summary-line--price strong {
+  color: var(--clay);
+  font-size: 16px;
+}
+
+.studio-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 5px;
+  background: var(--bone);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.studio-confirm.is-error {
+  border-color: var(--clay);
+  background: rgba(169, 71, 50, 0.05);
+}
+
+.studio-confirm input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.studio-confirm__box {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--charcoal);
+  border-radius: 4px;
+  background: var(--cream);
+  color: var(--bone);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.studio-confirm input:checked + .studio-confirm__box {
+  background: var(--olive);
+  border-color: var(--olive);
+}
+
+.studio-confirm input:focus-visible + .studio-confirm__box {
+  box-shadow: 0 0 0 3px rgba(169, 71, 50, 0.3);
+}
+
+.studio-confirm__text {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.studio-modal__error {
+  margin: 10px 2px 0;
+  color: var(--clay);
+  font-size: 12.5px;
+}
+
+.studio-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.studio-modal__actions .button {
+  flex: 0 1 auto;
+}
+
+[data-locked="true"] {
+  opacity: 0.55;
+}
+
+/* --- responsive ------------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .studio-grid {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .studio-panel--right {
+    grid-column: 1 / -1;
+  }
+
+  .studio-panel--right .studio-views {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .studio-panel--right .studio-view {
+    flex: 1 1 160px;
+  }
+}
+
+@media (max-width: 760px) {
+  .studio {
+    padding: 20px 16px 150px;
+  }
+
+  .studio-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .studio-panel--center {
+    order: -1;
+  }
+
+  .studio-modal__body {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-actionbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .studio-preview-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   Custom Studio — v2: blue accent theme, mockup images, designs, sleeve note
+   ========================================================================== */
+
+/* Studio accent: brand navy blue replaces the warm clay/orange accent.
+   We remap the --clay token locally so every studio rule that referenced it
+   becomes blue without per-rule edits. Genuine error/danger states are kept
+   red just below. */
+.studio,
+.studio-modal-layer {
+  --clay: #1E3A8A;
+  --terra: #2563EB;
+}
+
+/* keep real error / danger affordances red (not the blue accent) */
+.studio-toast--error { background: #C0392B; }
+.studio-action--danger { color: #C0392B; }
+.studio-action--danger:hover:not(:disabled) {
+  border-color: #C0392B;
+  background: #C0392B;
+  color: var(--bone);
+}
+.studio-confirm.is-error { border-color: #C0392B; background: rgba(192, 57, 43, 0.06); }
+.studio-confirm input:focus-visible + .studio-confirm__box {
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.3);
+}
+.studio-modal__error { color: #C0392B; }
+.studio-view__region { border-color: #1E3A8A; background: rgba(30, 58, 138, 0.1); }
+
+/* mockup PNG background fills the frame exactly so printable-area fractions map
+   straight onto the image (the shirt's transparent margin is baked into the
+   asset — see docs/mockup-specifications.md). */
+.studio-garment { padding: 0; }
+.studio-garment__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* selected colour name under the colour chips */
+.studio-bar__selected {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+/* Choose Design grid */
+.studio-designs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.studio-design {
+  aspect-ratio: 1 / 1;
+  padding: 6px;
+  border: 1.5px solid var(--taupe);
+  border-radius: 4px;
+  background: var(--bone);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.studio-design:hover:not(:disabled) {
+  border-color: #1E3A8A;
+  transform: translateY(-2px);
+}
+
+.studio-design:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.studio-design img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* sleeve "whole cloth" note */
+.studio-sleeve-note {
+  max-width: 440px;
+  margin: 4px auto 0;
+  padding: 10px 14px;
+  border: 1px solid var(--taupe);
+  border-left: 3px solid #1E3A8A;
+  border-radius: 4px;
+  background: var(--cream);
+  color: var(--charcoal);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.studio-sleeve-note strong { color: var(--ink); }
+
+/* ============================================================================
+   Admin — Customization Management
+   ========================================================================== */
+
+.admin-nav-group {
+  margin-top: 16px;
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-on-dark);
+}
+
+.admin-nav-link--sub {
+  padding-left: 22px;
+  font-size: 13px;
+}
+
+.admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.admin-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1E3A8A;
+}
+
+.admin-mockup-select {
+  min-width: 210px;
+  padding: 8px 10px;
+}
+
+.design-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.design-card {
+  padding: 10px;
+  border: 1px solid var(--taupe);
+  border-radius: 6px;
+  background: var(--cream);
+}
+
+.design-card.is-off { opacity: 0.62; }
+
+.design-card__img {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  background: var(--bone);
+  overflow: hidden;
+}
+
+.design-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.design-card__empty {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, #ececec, #ececec 6px, #f6f6f6 6px, #f6f6f6 12px);
+}
+
+.design-card__flag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(17, 16, 14, 0.7);
+  color: var(--bone);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.design-card__name {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.design-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.design-card__actions .pm-mini { flex: 1; }

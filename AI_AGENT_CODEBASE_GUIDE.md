@@ -71,7 +71,7 @@ Khud/
 - [app/shop/page.jsx](app/shop/page.jsx) renders the category landing page.
 - [app/shop/[slug]/page.jsx](app/shop/%5Bslug%5D/page.jsx) renders a category-specific catalog page.
 - [app/product/[slug]/page.jsx](app/product/%5Bslug%5D/page.jsx) renders an individual product page and normalizes DB data for the detail component.
-- [app/customize/page.jsx](app/customize/page.jsx) opens the custom studio builder.
+- [app/customize/page.jsx](app/customize/page.jsx) opens the Fabric.js custom studio (see section 14).
 - [app/size-guide/page.jsx](app/size-guide/page.jsx) shows the fit table and measurement guidance.
 - [app/size/page.jsx](app/size/page.jsx) is a simple alias that re-exports the size guide page.
 - [app/about/page.jsx](app/about/page.jsx) contains the brand story and quality promise.
@@ -93,6 +93,8 @@ Khud/
 - [app/admin/page.jsx](app/admin/page.jsx) manages products.
 - [app/admin/categories/page.jsx](app/admin/categories/page.jsx) manages categories.
 - [app/admin/orders/page.jsx](app/admin/orders/page.jsx) manages orders and order status.
+- [app/admin/customization/page.jsx](app/admin/customization/page.jsx) toggles which categories are customizable + their mockup set.
+- [app/admin/customization/designs/page.jsx](app/admin/customization/designs/page.jsx) manages the reusable "Choose Design" templates.
 
 ### Admin Route Behavior
 
@@ -108,7 +110,7 @@ These are the main reusable UI pieces and where they fit:
 - [components/CartContext.jsx](components/CartContext.jsx) stores cart state in React context and also submits checkout orders to Supabase.
 - [components/ProductCard.jsx](components/ProductCard.jsx) renders product tiles and quick add / link behavior.
 - [components/CategoryShop.jsx](components/CategoryShop.jsx) handles category-page filtering and sorting.
-- [components/CustomizeBuilder.jsx](components/CustomizeBuilder.jsx) powers the custom-studio UI.
+- [components/CustomStudio.jsx](components/CustomStudio.jsx) is the Fabric.js customization studio orchestrator (see section 14). It replaced the old proof-request `CustomizeBuilder`.
 - [components/Reveal.jsx](components/Reveal.jsx) wraps Framer Motion reveal patterns.
 - [components/SessionMonitor.jsx](components/SessionMonitor.jsx) signs users out after inactivity and shows a warning modal.
 - [components/TeeGraphic.jsx](components/TeeGraphic.jsx) draws the garment silhouette used across cards and illustrations.
@@ -242,6 +244,8 @@ Current order:
 12. [scripts/012_fix_all_table_grants.sql](scripts/012_fix_all_table_grants.sql)
 13. [scripts/013_product_variants_active.sql](scripts/013_product_variants_active.sql)
 14. [scripts/014_product_media_per_color.sql](scripts/014_product_media_per_color.sql)
+15. [scripts/015_inventory_checkout_and_realtime.sql](scripts/015_inventory_checkout_and_realtime.sql)
+16. [scripts/016_customization.sql](scripts/016_customization.sql) — `categories.is_customizable` + `mockup_key`, the `design_templates` table, RLS, and seed.
 
 ## 9. Styling And UI Conventions
 
@@ -281,3 +285,63 @@ The practical pattern in the codebase is: try Supabase first, fall back to stati
 - Keep all style edits in [app/globals.css](app/globals.css) unless the project direction changes.
 - Treat [db/clothing_ecommerce_schema.sql](db/clothing_ecommerce_schema.sql) as the base contract and the migration scripts as tracked, meaningful source files.
 - When you need a route map, the app folder is the first place to inspect.
+- The `/customize` studio uses Fabric.js (client-only). Never import `fabric` at module top level — it touches the DOM and breaks SSR. Load it inside an effect (`await import("fabric")`), as [components/customize/StudioCanvas.jsx](components/customize/StudioCanvas.jsx) does.
+
+## 14. Custom Studio (Fabric.js Editor)
+
+The `/customize` route is a full apparel customization studio. It lets a shopper
+place text and images onto predefined printable areas, approve a final proof,
+and add the result to the cart. There is intentionally **no design save/load,
+history, or draft persistence** yet — the canvas only lives in memory.
+
+### Dependency
+
+- `fabric` (v7) — the only new runtime dependency. Browser-only; see the SSR note in section 13.
+
+### Components
+
+- [components/CustomStudio.jsx](components/CustomStudio.jsx) — orchestrator. Owns garment/colour/size/view state, the left/center/right layout, validation toasts, the approval + leave-guard modals, add-to-cart, and the navigation guard.
+- [components/customize/StudioCanvas.jsx](components/customize/StudioCanvas.jsx) — wraps the single Fabric canvas. Owns per-view design storage, the hard printable-area boundary, layering, and offscreen export. Exposes an imperative API via `ref` (`addText`, `addImage`, `setProp`, `bringForward`, `sendBackward`, `deleteActive`, `clearView`, `validateBounds`, `exportViews`, `exportThumbnail`, `getSummary`, `hasAnyObjects`).
+- [components/customize/GarmentMockup.jsx](components/customize/GarmentMockup.jsx) — flat per-view garment SVG (front/back/left+right sleeve) tinted to the selected colour. Rendered behind the transparent canvas and inside the proof/selector thumbnails.
+- [components/customize/ViewSelector.jsx](components/customize/ViewSelector.jsx) — right panel; picks the printable surface and shows a per-view element-count badge.
+- [components/customize/TextControls.jsx](components/customize/TextControls.jsx) — left panel; font family/size/colour/weight/style/alignment/content for the selected text.
+- [components/customize/LayerControls.jsx](components/customize/LayerControls.jsx) — left panel; bring forward / send backward / delete.
+- [components/customize/ApprovalModal.jsx](components/customize/ApprovalModal.jsx) — clean proof of every printed surface + the explicit "I confirm…" checkbox gating add-to-cart.
+- [components/customize/LeaveGuardModal.jsx](components/customize/LeaveGuardModal.jsx) — "design will be lost" confirm shown when navigating away mid-design.
+
+### Configuration (in [lib/data.js](lib/data.js))
+
+- `customViews` — the four printable surfaces (`Front`, `Back`, `Left Sleeve`, `Right Sleeve`).
+- `customPrintAreas` — each surface's rectangular region as fractions (`x, y, width, height` in 0..1). The canvas converts these to a pixel region at runtime and enforces it as a **hard boundary**.
+- `customFonts`, `customTextColors`, `customAcceptedImageTypes`, `customMaxImageBytes` — control + upload-validation options.
+
+### How the boundary is enforced
+
+One Fabric canvas serves all four views; each view's objects are serialized to an
+in-memory `designsRef` map and swapped on view change. Every object is constrained
+to the active region: **moving** is clamped to the edges; **scaling/rotating** revert
+to the last fully-inside transform the instant a corner would overflow (snapshots
+kept per object); **adds** and text edits are auto-fitted then clamped. The dashed
+region guide is painted in the canvas `after:render` hook (it is not a real object,
+so it never serializes or interferes). `validateBounds()` is a final safety net run
+before preview/add.
+
+### Approval + navigation flow
+
+"Preview final design" validates (≥1 element, all in-bounds), exports each non-empty
+view to a transparent PNG via an offscreen `StaticCanvas`, and opens the approval
+modal. Add-to-cart is gated behind the confirmation checkbox; "Back to editor" just
+closes (canvas state is preserved). A capture-phase document click listener plus a
+`beforeunload` handler warn before leaving with an in-progress design — "Discard &
+leave" continues, "Keep editing" stays. Custom cart items carry a rendered thumbnail
+and a `custom: true` flag and have no `variantId` (so, like the previous flow, they
+are not part of the Supabase checkout RPC).
+
+### Customization v2 (admin-driven, mockup images, blue theme)
+
+- **Dynamic garments.** The studio no longer hard-codes garments. [components/CustomStudio.jsx](components/CustomStudio.jsx) fetches `categories` where `is_customizable = true` (browser client, anon) and maps each to `{ mockupKey, price, shape }`. `customFallbackGarments` in [lib/data.js](lib/data.js) keeps it working if the DB/column is missing (DB-first, static fallback). Admins control the list at [app/admin/customization/page.jsx](app/admin/customization/page.jsx).
+- **Mockup images.** [components/customize/GarmentArt.jsx](components/customize/GarmentArt.jsx) renders `/mockups/<mockupKey>/<colorKey>/<view>.png` (via `studioMockupSrc`) and falls back to the SVG `GarmentMockup` on a missing/empty file. Changing garment, colour, or view recomputes the path. Folders live in [public/mockups/](public/mockups). Asset spec: [docs/mockup-specifications.md](docs/mockup-specifications.md).
+- **Design templates.** [components/customize/ChooseDesign.jsx](components/customize/ChooseDesign.jsx) loads enabled rows from `design_templates` and adds the chosen image to the canvas. Admins upload/enable/delete at [app/admin/customization/designs/page.jsx](app/admin/customization/designs/page.jsx); images sit in the `product-images` bucket under `designs/`.
+- **Colours.** Fixed studio palette `studioColors` (White/Black/Navy/Grey) with a `key` matching the mockup folder. The orange/clay accent is replaced by brand blue `#1E3A8A` — the studio CSS locally remaps `--clay → #1E3A8A` (real error/danger stay red).
+- **Printable areas.** Enlarged (front/back ≈75% width, ~10% insets top/bottom). Sleeves show the whole sleeve cloth with a dashed fold/centre guideline (drawn both in the SVG and on the Fabric canvas) and a "whole sleeve cloth" note; the boundary itself is a conservative rectangle inside the sleeve.
+- **Auth note.** Stale Supabase refresh tokens are now swallowed in [proxy.ts](proxy.ts) and [app/admin/layout.jsx](app/admin/layout.jsx) (treated as "no user"; proxy also clears dead `sb-*` cookies) so they no longer throw `refresh_token_not_found`.

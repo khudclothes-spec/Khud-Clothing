@@ -9,7 +9,16 @@ export const metadata = {
 
 export default async function AdminLayout({ children }) {
   const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  // A stale/missing refresh token can make getUser throw
+  // (refresh_token_not_found). Treat any failure as "not signed in".
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) user = data.user;
+  } catch {
+    user = null;
+  }
 
   if (!user) redirect("/login");
 
@@ -34,6 +43,14 @@ export default async function AdminLayout({ children }) {
           <Link href="/admin" className="admin-nav-link">Products</Link>
           <Link href="/admin/categories" className="admin-nav-link">Categories</Link>
           <Link href="/admin/orders" className="admin-nav-link">Orders</Link>
+
+          <div className="admin-nav-group">Customization</div>
+          <Link href="/admin/customization" className="admin-nav-link admin-nav-link--sub">
+            Customizable Categories
+          </Link>
+          <Link href="/admin/customization/designs" className="admin-nav-link admin-nav-link--sub">
+            Design Templates
+          </Link>
         </nav>
 
         <div className="admin-sidebar__footer">

@@ -1,4 +1,4 @@
-import { CustomizeBuilder } from "@/components/CustomizeBuilder";
+import { CustomStudio } from "@/components/CustomStudio";
 
 export const metadata = {
   title: "Customize - Khud"
@@ -13,11 +13,11 @@ export default function CustomizePage() {
           Design <span className="italic-clay">yourself</span>.
         </h1>
         <p>
-          Pick a blank, upload your artwork, tell us where it goes. We proof every design with you before
-          anything is printed.
+          Add text and artwork to any printable area, drag it into place, then approve your final
+          proof before it goes in your bag.
         </p>
       </section>
-      <CustomizeBuilder />
+      <CustomStudio />
     </main>
   );
 }
