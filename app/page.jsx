@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@/components/Icons";
 import { Newsletter } from "@/components/Newsletter";
-import { ProductCard } from "@/components/ProductCard";
+import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { categories, COLORS, quality, steps, TEE_PATH } from "@/lib/data";
 import { createServerClient } from "@/lib/supabase-server";
@@ -22,7 +22,7 @@ export default async function HomePage() {
 
     const { data: dbProducts } = await supabase
       .from("products")
-      .select("id, name, slug, price, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(color, size, stock_quantity)")
+      .select("id, name, slug, price, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)")
       .eq("status", "active")
       .eq("is_featured", true)
       .order("created_at", { ascending: false })
@@ -169,11 +169,7 @@ export default async function HomePage() {
               <ArrowRight size={14} />
             </Link>
           </div>
-          <div className="product-grid">
-            {featured.map((product) => (
-              <ProductCard key={product.id || product.slug || product.name} product={product} />
-            ))}
-          </div>
+          <FeaturedProducts products={featured} />
         </section>
       )}
 

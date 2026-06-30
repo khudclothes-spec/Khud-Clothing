@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "@/components/Icons";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { useCart } from "@/components/CartContext";
+import { createClient } from "@/lib/supabase";
 import { COLORS, TEE_PATH, customColors, formatPrice } from "@/lib/data";
 
 const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL"];
@@ -32,31 +33,78 @@ function sortSizes(sizes) {
 export function ProductDetail({ product }) {
   const { addItem } = useCart();
 
+  // Variants live in state so Supabase Realtime can patch stock without a
+  // page reload. Every availability value below derives from `variants`,
+  // so the whole UI (size buttons, sold-out tag, add button, stock count)
+  // reacts the moment stock changes anywhere.
+  const [variants, setVariants] = useState(product.variants);
+
+  // Re-sync on navigation between products, and subscribe to live stock
+  // changes for this product's variants (checkout decrements + admin edits).
+  useEffect(() => {
+    setVariants(product.variants);
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`variants:${product.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "product_variants",
+          filter: `product_id=eq.${product.id}`
+        },
+        (payload) => {
+          setVariants((prev) => {
+            if (payload.eventType === "DELETE") {
+              return prev.filter((v) => v.id !== payload.old?.id);
+            }
+            const row = payload.new;
+            const mapped = {
+              id: row.id,
+              color: row.color,
+              size: row.size,
+              stock: Number(row.stock_quantity) || 0
+            };
+            const idx = prev.findIndex((v) => v.id === row.id);
+            if (idx === -1) return [...prev, mapped];
+            return prev.map((v) => (v.id === row.id ? mapped : v));
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [product.id]);
+
   // Distinct colours in the order they appear in the variants
   const colors = useMemo(() => {
     const seen = [];
-    product.variants.forEach((v) => {
+    variants.forEach((v) => {
       if (v.color && !seen.includes(v.color)) seen.push(v.color);
     });
     return seen;
-  }, [product.variants]);
+  }, [variants]);
 
   // Full size scale across every colour (so the size row is consistent)
   const sizeScale = useMemo(() => {
     const set = new Set();
-    product.variants.forEach((v) => v.size && set.add(v.size));
+    variants.forEach((v) => v.size && set.add(v.size));
     return sortSizes([...set]);
-  }, [product.variants]);
+  }, [variants]);
 
   // "color|size" -> variant
   const variantMap = useMemo(() => {
     const m = {};
-    product.variants.forEach((v) => { m[`${v.color}|${v.size}`] = v; });
+    variants.forEach((v) => { m[`${v.color}|${v.size}`] = v; });
     return m;
-  }, [product.variants]);
+  }, [variants]);
 
   const colorAvailable = (color) =>
-    product.variants.some((v) => v.color === color && v.stock > 0);
+    variants.some((v) => v.color === color && v.stock > 0);
 
   const sizeAvailableIn = (color, size) =>
     (variantMap[`${color}|${size}`]?.stock ?? 0) > 0;
@@ -96,6 +144,13 @@ export function ProductDetail({ product }) {
   const sizeIsAvailable =
     selectedColor && selectedSize ? sizeAvailableIn(selectedColor, selectedSize) : false;
   const canAdd = colorIsAvailable && sizeIsAvailable;
+
+  // Live stock counts for the availability line near the Add to bag button.
+  const totalStock = variants.reduce((t, v) => t + (v.stock || 0), 0);
+  const selectedStock =
+    selectedColor && selectedSize
+      ? variantMap[`${selectedColor}|${selectedSize}`]?.stock ?? 0
+      : 0;
 
   function pickColor(color) {
     setSelectedColor(color);
@@ -264,6 +319,21 @@ export function ProductDetail({ product }) {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Live stock — updates over websockets without a refresh */}
+          {variants.length > 0 && (
+            <div className="pd-stock" aria-live="polite">
+              {selectedSize && sizeIsAvailable && (
+                <span className={`pd-stock__count ${selectedStock <= 5 ? "pd-stock__count--low" : ""}`}>
+                  {selectedStock <= 5 ? `Only ${selectedStock} left` : `${selectedStock} in stock`}
+                  {selectedColor ? ` · ${selectedColor} ${selectedSize}` : ""}
+                </span>
+              )}
+              <span className="pd-stock__total">
+                {totalStock > 0 ? `${totalStock} available in total` : "Currently sold out"}
+              </span>
             </div>
           )}
 

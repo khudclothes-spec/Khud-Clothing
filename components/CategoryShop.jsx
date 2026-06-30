@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { Reveal } from "@/components/Reveal";
 import { formatPrice } from "@/lib/data";
+import { useLiveStock } from "@/lib/useLiveStock";
 
 const PRICE_MAX = 10000;
 const PRICE_STEP = 100;
@@ -16,7 +17,9 @@ const SORTS = [
   { value: "price-desc", label: "Price: High to Low" }
 ];
 
-export function CategoryShop({ products }) {
+export function CategoryShop({ products: initialProducts }) {
+  // Live stock keeps each card's Sold-Out state current without a reload.
+  const products = useLiveStock(initialProducts);
   const [sort, setSort] = useState("newest");
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);

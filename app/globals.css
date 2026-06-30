@@ -410,7 +410,7 @@ svg {
   padding: 22px 0;
   border-bottom: 1px solid var(--taupe);
   color: var(--charcoal);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 28px;
   font-weight: 500;
 }
@@ -452,8 +452,9 @@ svg {
 .display {
   margin: 0;
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
-  font-weight: 600;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 0.96;
 }
 
@@ -473,8 +474,10 @@ svg {
 }
 
 .italic-clay {
+  font-family: "Bodoni Moda", Georgia, serif;
   color: var(--clay);
   font-style: italic;
+  letter-spacing: normal;
 }
 
 .muted {
@@ -645,7 +648,7 @@ svg {
 
 .stat__value {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 28px;
   font-weight: 600;
 }
@@ -1126,7 +1129,7 @@ svg {
 
 .category-card__name {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 20px;
   line-height: 1.1;
 }
@@ -1161,7 +1164,7 @@ svg {
 
 .quality-card__no {
   color: var(--brass);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 14px;
 }
 
@@ -1740,7 +1743,7 @@ svg {
 
 .preview-title {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 22px;
 }
 
@@ -1824,7 +1827,7 @@ svg {
 
 .size-table td:first-child {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 20px;
   font-weight: 600;
 }
@@ -1929,7 +1932,7 @@ svg {
 .about-block h2 {
   margin: 0 0 14px;
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: clamp(24px, 3.2vw, 36px);
   font-weight: 600;
   line-height: 1.05;
@@ -2094,7 +2097,7 @@ svg {
 
 .cart-title strong {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 22px;
   font-weight: 600;
 }
@@ -2117,7 +2120,7 @@ svg {
 
 .cart-empty__title {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 22px;
 }
 
@@ -2248,7 +2251,7 @@ svg {
 
 .subtotal span:last-child {
   color: var(--ink);
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 22px;
 }
 
@@ -2721,7 +2724,7 @@ svg {
 
 .auth-heading {
   margin: 0 0 24px;
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 22px;
   font-weight: 600;
   text-align: center;
@@ -2976,7 +2979,7 @@ svg {
 
 .session-modal__title {
   margin-bottom: 12px;
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 20px;
   font-weight: 600;
   color: var(--ink);
@@ -3109,7 +3112,7 @@ svg {
 
 .admin-page-title {
   margin: 0;
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 28px;
   font-weight: 600;
   color: var(--ink);
@@ -3345,7 +3348,7 @@ svg {
 
 .admin-modal-title {
   margin: 0;
-  font-family: "Bodoni Moda", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 20px;
   font-weight: 600;
   color: var(--ink);
@@ -4139,6 +4142,31 @@ svg {
   color: var(--charcoal);
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.pd-stock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-top: 18px;
+}
+
+.pd-stock__count {
+  color: var(--olive);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.pd-stock__count--low {
+  color: var(--clay);
+}
+
+.pd-stock__total {
+  color: var(--charcoal);
+  font-size: 12px;
+  letter-spacing: 0.04em;
 }
 
 .pd-add {

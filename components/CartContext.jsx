@@ -4,6 +4,29 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
 
+// Turn the pipe-delimited error raised by the process_checkout RPC into a
+// shopper-friendly message. The cart is never trusted, so the DB is the one
+// that tells us exactly how much stock is actually left.
+function parseCheckoutError(message) {
+  if (!message) return "Something went wrong placing your order. Please try again.";
+  if (message.startsWith("OUT_OF_STOCK|")) {
+    const [, name, color, size, available] = message.split("|");
+    const variant = [color, size].filter(Boolean).join(" · ");
+    const left = Number(available) || 0;
+    const label = `${name}${variant ? ` (${variant})` : ""}`;
+    return left <= 0
+      ? `${label} just sold out — please remove it from your bag.`
+      : `Only ${left} left of ${label}. Please reduce the quantity in your bag.`;
+  }
+  if (message.startsWith("VARIANT_NOT_FOUND")) {
+    return "An item in your bag is no longer available. Please remove it and try again.";
+  }
+  if (message.includes("NOT_AUTHENTICATED")) return "Not signed in";
+  if (message.includes("EMPTY_CART")) return "Your bag is empty.";
+  if (message.includes("INVALID_QUANTITY")) return "Please check the quantities in your bag.";
+  return message;
+}
+
 const fallbackCart = {
   cart: [],
   cartCount: 0,
@@ -64,16 +87,27 @@ export function CartProvider({ children }) {
     setCart([]);
   }, []);
 
-  // Returns { orderId } on success, throws on failure
+  // Returns { orderId, orderNumber } on success, throws on failure.
+  // The whole checkout runs server-side in the process_checkout RPC: a single
+  // DB transaction that locks each variant row (FOR UPDATE), verifies stock,
+  // decrements it, and writes the order + items atomically. Stock is only ever
+  // reserved here, at checkout — never when items are added to the cart.
   const placeOrder = useCallback(
     async (shipping) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
 
-      const subtotalNumber = cart.reduce((t, i) => t + i.price * i.qty, 0);
-      const totalAmount = subtotalNumber; // no tax / shipping cost for now
+      // Send only ids + quantities — price, totals and stock are revalidated
+      // server-side, so a tampered cart cannot change what is charged or sold.
+      const items = cart
+        .filter((i) => i.variantId)
+        .map((i) => ({ variant_id: i.variantId, quantity: i.qty }));
 
-      // Combine address lines + province + postal into a single TEXT field
+      if (items.length === 0) {
+        throw new Error("Your bag has no purchasable items.");
+      }
+
+      // Combine address lines + province + postal into a single TEXT field.
       const shippingAddress = [
         shipping.address_line1,
         shipping.address_line2,
@@ -81,44 +115,27 @@ export function CartProvider({ children }) {
         shipping.postal_code
       ].filter(Boolean).join(", ");
 
-      // Generate a short unique order number
-      const orderNumber = `KHD-${Date.now().toString(36).toUpperCase()}`;
+      console.info("[checkout] submitting", { items });
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          profile_id: user.id,
-          order_number: orderNumber,
-          status: "pending",
-          customer_name: shipping.full_name,
-          customer_phone: shipping.phone,
-          customer_email: user.email,
-          shipping_address: shippingAddress,
+      const { data, error } = await supabase.rpc("process_checkout", {
+        p_items: items,
+        p_customer: {
+          full_name: shipping.full_name,
+          phone: shipping.phone,
+          address: shippingAddress,
           city: shipping.city,
-          subtotal: subtotalNumber,
-          shipping_cost: 0,
-          total_amount: totalAmount
-        })
-        .select("id")
-        .single();
+          notes: null
+        }
+      });
 
-      if (orderError) throw new Error(orderError.message);
+      if (error) {
+        console.warn("[checkout] failed", { code: error.code, message: error.message });
+        throw new Error(parseCheckoutError(error.message));
+      }
 
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        product_id: item.id ?? null,
-        variant_id: item.variantId ?? null,
-        unit_price: item.price,
-        quantity: item.qty,
-        size: item.size ?? null,
-        color: item.color ?? null
-      }));
-
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw new Error(itemsError.message);
-
+      console.info("[checkout] success", data);
       setCart([]);
-      return { orderId: order.id };
+      return { orderId: data.order_id, orderNumber: data.order_number };
     },
     [cart]
   );
