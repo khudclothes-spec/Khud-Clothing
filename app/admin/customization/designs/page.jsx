@@ -156,7 +156,11 @@ export default function AdminDesignTemplatesPage() {
             return (
               <div key={d.id} className={`design-card ${d.is_active ? "" : "is-off"}`}>
                 <div className="design-card__img">
-                  {url ? <img src={url} alt={d.name || "Design"} /> : <div className="design-card__empty" />}
+                  {url ? (
+                    <img src={url} alt={d.name || "Design"} loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="design-card__empty" />
+                  )}
                   {!d.is_active && <span className="design-card__flag">Disabled</span>}
                 </div>
                 <div className="design-card__name">{d.name || "Untitled"}</div>

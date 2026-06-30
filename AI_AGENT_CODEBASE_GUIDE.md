@@ -95,6 +95,7 @@ Khud/
 - [app/admin/orders/page.jsx](app/admin/orders/page.jsx) manages orders and order status.
 - [app/admin/customization/page.jsx](app/admin/customization/page.jsx) toggles which categories are customizable + their mockup set.
 - [app/admin/customization/designs/page.jsx](app/admin/customization/designs/page.jsx) manages the reusable "Choose Design" templates.
+- [app/admin/storefront/page.jsx](app/admin/storefront/page.jsx) picks the homepage hero (best) product and the ≤3 footer categories.
 
 ### Admin Route Behavior
 
@@ -246,6 +247,7 @@ Current order:
 14. [scripts/014_product_media_per_color.sql](scripts/014_product_media_per_color.sql)
 15. [scripts/015_inventory_checkout_and_realtime.sql](scripts/015_inventory_checkout_and_realtime.sql)
 16. [scripts/016_customization.sql](scripts/016_customization.sql) — `categories.is_customizable` + `mockup_key`, the `design_templates` table, RLS, and seed.
+17. [scripts/017_storefront_settings.sql](scripts/017_storefront_settings.sql) — `products.is_hero` (homepage hero) + `categories.show_in_footer` (footer Shop column).
 
 ## 9. Styling And UI Conventions
 
@@ -345,3 +347,10 @@ are not part of the Supabase checkout RPC).
 - **Colours.** Fixed studio palette `studioColors` (White/Black/Navy/Grey) with a `key` matching the mockup folder. The orange/clay accent is replaced by brand blue `#1E3A8A` — the studio CSS locally remaps `--clay → #1E3A8A` (real error/danger stay red).
 - **Printable areas.** Enlarged (front/back ≈75% width, ~10% insets top/bottom). Sleeves show the whole sleeve cloth with a dashed fold/centre guideline (drawn both in the SVG and on the Fabric canvas) and a "whole sleeve cloth" note; the boundary itself is a conservative rectangle inside the sleeve.
 - **Auth note.** Stale Supabase refresh tokens are now swallowed in [proxy.ts](proxy.ts) and [app/admin/layout.jsx](app/admin/layout.jsx) (treated as "no user"; proxy also clears dead `sb-*` cookies) so they no longer throw `refresh_token_not_found`.
+
+### Storefront display settings (admin-driven)
+
+- **Homepage hero = "best product".** `products.is_hero` (migration 017) marks one product. [app/page.jsx](app/page.jsx) queries the active `is_hero` product and renders its cover/title/price in the hero, linked to the product page. No hero selected ⇒ the hero area is blank (the old hardcoded "Essential Oversized Tee" placeholder was removed). Admin picks it at [app/admin/storefront/page.jsx](app/admin/storefront/page.jsx) (clears others, sets one).
+- **Footer Shop column.** `categories.show_in_footer` (migration 017) flags ≤3 categories. [components/SiteShell.jsx](components/SiteShell.jsx) shows "All categories" + those 3; the Studio column is Customize / About / Size Guide. Admin selects them on the same storefront page (hard-capped at 3).
+- **Customize card image.** The "Customize" card in the homepage category grid uses `/mockups/classic/black/front.png`.
+- **Add-product flow.** [app/admin/page.jsx](app/admin/page.jsx) `AddProductModal` is now two steps: step 1 creates the product + variants (colours/sizes required); step 2 reuses [ProductMediaManager](components/ProductMediaManager.jsx) so the admin adds **unlimited images per colour** (no more single "uncategorised" image). The inline edit flow is unchanged.

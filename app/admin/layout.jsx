@@ -43,6 +43,7 @@ export default async function AdminLayout({ children }) {
           <Link href="/admin" className="admin-nav-link">Products</Link>
           <Link href="/admin/categories" className="admin-nav-link">Categories</Link>
           <Link href="/admin/orders" className="admin-nav-link">Orders</Link>
+          <Link href="/admin/storefront" className="admin-nav-link">Storefront</Link>
 
           <div className="admin-nav-group">Customization</div>
           <Link href="/admin/customization" className="admin-nav-link admin-nav-link--sub">

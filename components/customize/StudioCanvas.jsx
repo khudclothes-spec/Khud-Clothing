@@ -11,6 +11,34 @@ function isTextObj(obj) {
   return obj && typeof obj.text === "string" && obj.fontSize !== undefined;
 }
 
+// Dashed rect/line drawn as a dark halo with white dashes on top, so the
+// boundary stays visible on any shirt colour (white shirts and navy alike).
+function dashedRect(ctx, x, y, w, h) {
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.strokeRect(x, y, w, h);
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = "rgba(255,255,255,0.96)";
+  ctx.strokeRect(x, y, w, h);
+}
+
+function dashedLine(ctx, x1, y1, x2, y2) {
+  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.lineWidth = 1.3;
+  ctx.strokeStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
 // Decorate an object's selection controls to match the brand palette.
 function styleObject(obj) {
   obj.set({
@@ -248,22 +276,15 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
     if (isSleeve) {
       const { h } = sizeRef.current;
       const cx = r.x + r.width / 2;
-      ctx.beginPath();
-      ctx.setLineDash([5, 5]);
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = "rgba(17,16,14,0.28)";
-      ctx.moveTo(cx, Math.max(0, r.y - h * 0.06));
-      ctx.lineTo(cx, Math.min(h, r.y + r.height + h * 0.06));
-      ctx.stroke();
+      dashedLine(ctx, cx, Math.max(0, r.y - h * 0.06), cx, Math.min(h, r.y + r.height + h * 0.06));
     }
 
-    // Printable-area boundary.
-    ctx.fillStyle = "rgba(30,58,138,0.06)";
+    // Printable-area boundary — faint fill + white dashes (dark halo) so it
+    // reads on any shirt colour, including navy.
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.fillRect(r.x, r.y, r.width, r.height);
-    ctx.setLineDash([6, 4]);
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = "rgba(30,58,138,0.85)";
-    ctx.strokeRect(r.x, r.y, r.width, r.height);
+    dashedRect(ctx, r.x, r.y, r.width, r.height);
+
     ctx.restore();
   }
 
@@ -549,6 +570,7 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
             colorKey={colorKey}
             mockupKey={mockupKey}
             shape={shape}
+            priority
           />
         </div>
         <canvas ref={canvasElRef} className="studio-canvas" />

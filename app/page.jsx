@@ -3,9 +3,12 @@ import { ArrowRight } from "@/components/Icons";
 import { Newsletter } from "@/components/Newsletter";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { TeeGraphic } from "@/components/TeeGraphic";
-import { categories, COLORS, quality, steps, TEE_PATH } from "@/lib/data";
+import { categories, COLORS, quality, steps, TEE_PATH, formatPrice } from "@/lib/data";
 import { createServerClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
+
+const HERO_PRODUCT_SELECT =
+  "id, name, slug, price, status, is_hero, product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
 
 export const metadata = {
   title: "Khud — Wear Your Imprint",
@@ -16,9 +19,19 @@ export default async function HomePage() {
   let featured = [];
   let dbReviews = [];
   let shopCategories = [];
+  let heroProduct = null;
 
   try {
     const supabase = await createServerClient();
+
+    // Homepage hero = the admin-selected "best product" (one, must be active).
+    const { data: heroRows } = await supabase
+      .from("products")
+      .select(HERO_PRODUCT_SELECT)
+      .eq("is_hero", true)
+      .eq("status", "active")
+      .limit(1);
+    if (heroRows?.length) heroProduct = mapDbProduct(heroRows[0]);
 
     const { data: dbProducts } = await supabase
       .from("products")
@@ -94,7 +107,7 @@ export default async function HomePage() {
     name: "Customize",
     count: "Made to order",
     href: "/customize",
-    image: null,
+    image: "/mockups/classic/black/front.png",
     fill: COLORS.clay
   });
 
@@ -133,27 +146,32 @@ export default async function HomePage() {
         </div>
 
         <div className="hero-visual">
-          <div className="hero-visual__card">
-            <div className="hero-visual__watermark">
-              <img src="/images/logo-black-writing.png" alt="" />
-            </div>
-            <div className="hero-visual__tee">
-              <TeeGraphic path={TEE_PATH} fill={COLORS.ink} width="55%" />
-            </div>
-            <div className="hero-visual__mark">
-              <img src="/images/logo-white-writing.png" alt="" />
-            </div>
-            <div className="hero-visual__badge">
-              <strong>new</strong>
-              <span>DROP 01</span>
-            </div>
-            <div className="hero-visual__accent" />
-          </div>
-          <div className="floating-product">
-            <div className="floating-product__tag">Bestseller</div>
-            <div className="floating-product__name">Essential Oversized Tee</div>
-            <div className="floating-product__price">Rs 4,200</div>
-          </div>
+          {heroProduct ? (
+            <Link href={`/product/${heroProduct.slug}`} className="hero-visual__link">
+              <div className="hero-visual__card">
+                <div className="hero-visual__watermark">
+                  <img src="/images/logo-black-writing.png" alt="" />
+                </div>
+                {heroProduct.image ? (
+                  <img src={heroProduct.image} alt={heroProduct.name} className="hero-visual__photo" />
+                ) : (
+                  <div className="hero-visual__tee">
+                    <TeeGraphic path={TEE_PATH} fill={COLORS.ink} width="55%" />
+                  </div>
+                )}
+                <div className="hero-visual__badge">
+                  <strong>best</strong>
+                  <span>SELLER</span>
+                </div>
+                <div className="hero-visual__accent" />
+              </div>
+              <div className="floating-product">
+                <div className="floating-product__tag">Bestseller</div>
+                <div className="floating-product__name">{heroProduct.name}</div>
+                <div className="floating-product__price">{formatPrice(heroProduct.price)}</div>
+              </div>
+            </Link>
+          ) : null}
         </div>
       </section>
 

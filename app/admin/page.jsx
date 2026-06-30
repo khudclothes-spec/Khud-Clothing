@@ -154,6 +154,7 @@ export default function AdminProductsPage() {
         <AddProductModal
           supabase={supabase}
           categories={categories}
+          getPublicUrl={getPublicUrl}
           onClose={() => setShowAdd(false)}
           onSaved={async () => { setShowAdd(false); await fetchAll(); }}
         />
@@ -448,15 +449,26 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
 
 /* ───────────────────────── Add product (with variant builder) ───────────────────────── */
 
-function AddProductModal({ supabase, categories, onClose, onSaved }) {
+function AddProductModal({ supabase, categories, getPublicUrl, onClose, onSaved }) {
+  const [step, setStep] = useState("form"); // "form" | "media"
+  const [created, setCreated] = useState(null); // { id, slug } once the product exists
+  const [media, setMedia] = useState([]);
   const [form, setForm] = useState(emptyProductForm());
-  const [imageFile, setImageFile] = useState(null);
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [customColor, setCustomColor] = useState("");
   const [combos, setCombos] = useState({}); // key "Color|Size" -> qty string
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  async function fetchMedia(productId) {
+    const { data } = await supabase
+      .from("product_media")
+      .select("id, storage_path, color, is_primary, is_color_cover, sort_order")
+      .eq("product_id", productId)
+      .order("sort_order");
+    setMedia(data ?? []);
+  }
 
   function handleField(e) {
     const { name, value, type, checked } = e.target;
@@ -488,6 +500,11 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
 
   async function handleSave(e) {
     e.preventDefault();
+    // Images are added per-colour after creation, so colours + sizes are required.
+    if (selectedColors.length === 0 || selectedSizes.length === 0) {
+      setError("Choose at least one colour and one size first — you'll add images per colour next.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -506,14 +523,6 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
       const { data: inserted, error: insErr } = await supabase.from("products").insert(payload).select("id").single();
       if (insErr) throw new Error(insErr.message);
       const productId = inserted.id;
-
-      if (imageFile) {
-        const ext = imageFile.name.split(".").pop();
-        const path = `products/${productId}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("product-images").upload(path, imageFile, { upsert: true });
-        if (upErr) throw new Error(upErr.message);
-        await supabase.from("product_media").insert({ product_id: productId, storage_path: path, is_primary: true });
-      }
 
       // Build variant rows from the selected color × size combos
       const variantRows = [];
@@ -535,23 +544,28 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
         if (vErr) throw new Error(vErr.message);
       }
 
-      await onSaved();
+      // Move to the image step — admin can now add unlimited images per colour.
+      setCreated({ id: productId, slug });
+      setMedia([]);
+      setStep("media");
     } catch (err) {
       setError(err.message);
+    } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="admin-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="admin-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) (step === "media" ? onSaved() : onClose()); }}>
       <div className="admin-modal">
         <div className="admin-modal-head">
-          <h2 className="admin-modal-title">Add Product</h2>
-          <button type="button" className="admin-modal-close" onClick={onClose}>✕</button>
+          <h2 className="admin-modal-title">{step === "form" ? "Add Product" : "Add Images"}</h2>
+          <button type="button" className="admin-modal-close" onClick={step === "media" ? onSaved : onClose}>✕</button>
         </div>
 
         {error && <div className="admin-error">{error}</div>}
 
+        {step === "form" ? (
         <form onSubmit={handleSave} className="admin-form">
           <div className="form-group">
             <label className="form-label">Name *</label>
@@ -590,21 +604,14 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
             <textarea name="description" className="form-input form-textarea" rows={3} value={form.description} onChange={handleField} />
           </div>
 
-          <div className="admin-form-row admin-form-row--2">
-            <div className="form-group">
-              <label className="form-label">Main image (optional)</label>
-              <input type="file" accept="image/*" className="form-input form-file" onChange={(e) => setImageFile(e.target.files[0] ?? null)} />
-              <span className="slug-preview">Per-colour images are added after saving, from the product editor.</span>
-            </div>
-            <div className="form-check" style={{ alignSelf: "end" }}>
-              <input type="checkbox" id="add-featured" name="is_featured" checked={form.is_featured} onChange={handleField} className="form-checkbox" />
-              <label htmlFor="add-featured" className="form-check-label">Featured product</label>
-            </div>
+          <div className="form-check">
+            <input type="checkbox" id="add-featured" name="is_featured" checked={form.is_featured} onChange={handleField} className="form-checkbox" />
+            <label htmlFor="add-featured" className="form-check-label">Featured product</label>
           </div>
 
           {/* Variant builder */}
           <div className="admin-detail__section-title">Variants — pick colours &amp; sizes, set stock</div>
-          <p className="admin-hint">Tick the colours and sizes you stock. A row appears for each combination so you can set its quantity. SKU is auto-generated; 0 stock = archived.</p>
+          <p className="admin-hint">Tick the colours and sizes you stock. A row appears for each combination so you can set its quantity. SKU is auto-generated; 0 stock = archived. <strong>Images are added per colour in the next step.</strong></p>
 
           <div className="vb-group vb-group--stack">
             <span className="vb-label">Colours</span>
@@ -675,10 +682,31 @@ function AddProductModal({ supabase, categories, onClose, onSaved }) {
           <div className="admin-modal-foot">
             <button type="button" className="button button--outline" onClick={onClose}>Cancel</button>
             <button type="submit" className="button button--dark" disabled={saving}>
-              {saving ? "Saving…" : "Add Product"}
+              {saving ? "Creating…" : "Continue to images →"}
             </button>
           </div>
         </form>
+        ) : (
+          <div className="admin-form">
+            <div className="admin-detail__section-title">Add images — per colour</div>
+            <p className="admin-hint" style={{ marginTop: 0 }}>
+              Add as many images as you like for each colour. The first image of a colour becomes its
+              cover; pick one <strong>main</strong> image for the grids. You can edit these again any time.
+            </p>
+            <ProductMediaManager
+              productId={created.id}
+              slug={created.slug}
+              colors={selectedColors}
+              media={media}
+              supabase={supabase}
+              getPublicUrl={getPublicUrl}
+              onChanged={() => fetchMedia(created.id)}
+            />
+            <div className="admin-modal-foot">
+              <button type="button" className="button button--dark" onClick={onSaved}>Done</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

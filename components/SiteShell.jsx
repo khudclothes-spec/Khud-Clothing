@@ -67,13 +67,15 @@ function ShellChrome({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Active categories for the footer "Shop" column
+  // Footer "Shop" column: up to 3 admin-selected categories (show_in_footer).
   useEffect(() => {
     supabase
       .from("categories")
       .select("name, slug")
       .eq("is_active", true)
+      .eq("show_in_footer", true)
       .order("name")
+      .limit(3)
       .then(({ data }) => setShopCategories(data ?? []));
   }, []);
 
@@ -390,18 +392,15 @@ function UserMenu({ displayName, isAdmin, onLogout, onNavigate }) {
 }
 
 function Footer({ handleLink, shopCategories = [] }) {
-  // Only active categories (from the DB) + a Customize link.
+  // Shop column: "All categories" + up to 3 admin-selected footer categories.
   const shopLinks = [
-    { label: "All pieces", href: "/shop" },
-    ...shopCategories.map((c) => ({ label: c.name, href: `/shop/${c.slug}` })),
-    { label: "Customize", href: "/customize" },
-    { label: "Size Guide", href: "/size-guide" }
+    { label: "All categories", href: "/shop" },
+    ...shopCategories.slice(0, 3).map((c) => ({ label: c.name, href: `/shop/${c.slug}` }))
   ];
   const studioLinks = [
     { label: "Customize", href: "/customize" },
-    { label: "About Khud", href: "/about" },
-    { label: "Our philosophy", href: "/about" },
-    { label: "Quality promise", href: "/about" }
+    { label: "About", href: "/about" },
+    { label: "Size Guide", href: "/size-guide" }
   ];
 
   // Placeholder social links — swap the href values in once the handles are live.

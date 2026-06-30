@@ -18,10 +18,12 @@ import {
   TEE_PATH,
   studioColors,
   customSizes,
+  customViews,
   customSleeveViews,
   customFallbackGarments,
   inferMockupKey,
   studioGarmentPrice,
+  studioMockupSrc,
   customAcceptedImageTypes,
   customMaxImageBytes,
   formatPrice
@@ -85,6 +87,19 @@ export function CustomStudio() {
       active = false;
     };
   }, []);
+
+  // ---- warm the mockup cache so switching view/colour is instant ------------
+  useEffect(() => {
+    if (!product.mockupKey || typeof window === "undefined") return;
+    customViews.forEach((v) => {
+      const src = studioMockupSrc(product.mockupKey, color.key, v.id);
+      if (src) {
+        const img = new window.Image();
+        img.decoding = "async";
+        img.src = src;
+      }
+    });
+  }, [product.mockupKey, color.key]);
 
   // ---- canvas callbacks ------------------------------------------------------
   const refreshCounts = useCallback(() => {
@@ -223,6 +238,14 @@ export function CustomStudio() {
 
   return (
     <div className="studio">
+      <div className="studio-tip">
+        <Info size={15} />
+        <span>
+          Click <strong>Add text</strong>, <strong>Upload image</strong>, or a design to place it on
+          the shirt — then drag it into position inside the dashed area.
+        </span>
+      </div>
+
       {/* Garment / colour / size bar */}
       <div className="studio-bar">
         <div className="studio-bar__group">
@@ -365,7 +388,7 @@ export function CustomStudio() {
           {isSleeve && (
             <p className="studio-sleeve-note">
               This is the <strong>whole sleeve cloth</strong>. The dashed centre line marks the
-              sleeve fold (outer edge) and is not printed — keep your design on one side of it.
+              sleeve fold (outer edge) and is not printed.
             </p>
           )}
         </div>
