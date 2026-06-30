@@ -46,9 +46,10 @@ function styleObject(obj) {
     cornerColor: STUDIO_ACCENT,
     cornerStrokeColor: "#FBF8F1",
     cornerStyle: "circle",
-    cornerSize: 11,
+    cornerSize: 12,
+    touchCornerSize: 44, // big hit area so resize handles are easy to grab on mobile
     transparentCorners: false,
-    padding: 3,
+    padding: 4,
     borderScaleFactor: 1.4
   });
 }
@@ -98,12 +99,6 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
     };
   }
 
-  function restore(obj) {
-    if (!obj._inBounds) return;
-    obj.set(obj._inBounds);
-    obj.setCoords();
-  }
-
   function within(obj, r) {
     const b = obj.getBoundingRect();
     return (
@@ -127,6 +122,28 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
       obj.setCoords();
       b = obj.getBoundingRect();
     }
+    let nx = obj.left;
+    let ny = obj.top;
+    if (b.left < r.x) nx += r.x - b.left;
+    if (b.top < r.y) ny += r.y - b.top;
+    if (b.left + b.width > r.x + r.width) nx += r.x + r.width - (b.left + b.width);
+    if (b.top + b.height > r.y + r.height) ny += r.y + r.height - (b.top + b.height);
+    obj.set({ left: nx, top: ny });
+    obj.setCoords();
+    snapshot(obj);
+  }
+
+  // Per-axis hard clamp used while the user resizes/rotates and on release.
+  // Each axis is capped independently so stretching one direction never shrinks
+  // the other (no uniform scale-down), then the object is clamped fully inside.
+  function clampInside(obj) {
+    const r = regionRef.current;
+    obj.setCoords();
+    let b = obj.getBoundingRect();
+    if (b.width > r.width) obj.scaleX *= r.width / b.width;
+    if (b.height > r.height) obj.scaleY *= r.height / b.height;
+    obj.setCoords();
+    b = obj.getBoundingRect();
     let nx = obj.left;
     let ny = obj.top;
     if (b.left < r.x) nx += r.x - b.left;
@@ -236,21 +253,17 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
     if (within(obj, r)) snapshot(obj);
   }
 
-  // Scaling / rotating can push a corner past the edge in ways that can't be
-  // cleanly clamped, so we hold the last fully-inside transform and revert to
-  // it the instant the object would overflow. This makes the boundary hard.
+  // Hard boundary on scale / rotate: every tick the object is capped per-axis
+  // and clamped fully inside the printable area (no revert, no cross-axis
+  // shrink — stretching one direction never resizes the other).
   function onTransformGuard(e) {
-    const obj = e.target;
-    if (within(obj, regionRef.current)) snapshot(obj);
-    else restore(obj);
+    if (e.target) clampInside(e.target);
   }
 
-  function onModified() {
-    const obj = fabricRef.current.getActiveObject();
-    if (obj) {
-      if (!within(obj, regionRef.current)) restore(obj);
-      else snapshot(obj);
-    }
+  function onModified(e) {
+    const obj = e?.target || fabricRef.current?.getActiveObject();
+    if (obj) clampInside(obj);
+    fabricRef.current?.requestRenderAll();
     flush();
     emitSelection();
   }
@@ -295,8 +308,13 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
       const fabric = await import("fabric");
       if (disposed || !canvasElRef.current) return;
 
-      const avail = wrapRef.current?.clientWidth || 420;
-      const w = Math.max(300, Math.min(460, Math.round(avail)));
+      // Fit the canvas to its container AND hard-cap it to the viewport width
+      // (minus the studio's 16px side padding) so it always matches the width of
+      // the garment/colour bar above and never overflows the screen.
+      const vw = typeof document !== "undefined" ? document.documentElement.clientWidth : 420;
+      const measured = wrapRef.current?.clientWidth || 0;
+      const avail = Math.min(measured > 0 ? measured : vw - 32, vw - 32);
+      const w = Math.min(460, Math.floor(avail));
       const h = Math.round(w * 1.16);
       sizeRef.current = { w, h };
       setCanvasSize({ w, h });
@@ -308,7 +326,10 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
         preserveObjectStacking: true,
         enableRetinaScaling: false,
         controlsAboveOverlay: true,
-        selection: false
+        selection: false,
+        // Let the page scroll when a touch starts on empty canvas area instead
+        // of trapping the gesture (so the user can scroll past the canvas).
+        allowTouchScrolling: true
       });
       fabricRef.current = canvas;
       fabricModRef.current = fabric;
@@ -346,6 +367,13 @@ export const StudioCanvas = forwardRef(function StudioCanvas(
     function onKey(e) {
       const canvas = fabricRef.current;
       if (!canvas) return;
+      // Don't hijack keys while the user is typing in a form field (e.g. the
+      // Text controls textarea) — otherwise editing text deletes the object.
+      const t = e.target;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t?.isContentEditable) return;
+      // Ignore key auto-repeat so holding Delete can't blow away the object.
+      if (e.repeat) return;
       const obj = canvas.getActiveObject();
       if (!obj || obj.isEditing) return;
       if (e.key === "Delete" || e.key === "Backspace") {

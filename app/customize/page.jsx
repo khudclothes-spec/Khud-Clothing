@@ -1,7 +1,7 @@
 import { CustomStudio } from "@/components/CustomStudio";
 
 export const metadata = {
-  title: "Customize - Khud"
+  title: "Customize"
 };
 
 export default function CustomizePage() {

@@ -5609,3 +5609,32 @@ svg {
   font-weight: 700;
   color: var(--clay);
 }
+
+/* Mobile: centre-align the footer */
+@media (max-width: 760px) {
+  .footer-grid {
+    text-align: center;
+  }
+
+  .footer-grid > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer-copy {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .logo--footer {
+    margin: 0 auto;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+}

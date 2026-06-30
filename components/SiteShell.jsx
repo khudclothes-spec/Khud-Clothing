@@ -406,7 +406,6 @@ function Footer({ handleLink, shopCategories = [] }) {
   // Placeholder social links — swap the href values in once the handles are live.
   const socials = [
     { label: "Instagram", href: "#" },
-    { label: "Instagram DM", href: "#" },
     { label: "WhatsApp", href: "#" }
   ];
 
