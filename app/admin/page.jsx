@@ -281,7 +281,7 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
         </td>
         <td>
           <div className="admin-thumb">
-            {img ? <img src={img} alt={product.name} /> : <div className="admin-thumb-empty" />}
+            {img ? <img src={img} alt={product.name} loading="lazy" decoding="async" /> : <div className="admin-thumb-empty" />}
           </div>
         </td>
         <td>

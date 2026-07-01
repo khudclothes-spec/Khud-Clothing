@@ -134,7 +134,7 @@ export function ProductMediaManager({ productId, slug, colors, media, supabase, 
     return (
       <div key={m.id} className={`pm-card ${m.is_primary ? "is-main" : ""}`}>
         <div className="pm-card__img">
-          {url ? <img src={url} alt="" /> : <div className="pm-card__empty" />}
+          {url ? <img src={url} alt="" loading="lazy" decoding="async" /> : <div className="pm-card__empty" />}
           {m.is_primary && <span className="pm-flag pm-flag--main">Main</span>}
           {m.is_color_cover && <span className="pm-flag pm-flag--cover">Cover</span>}
           <button type="button" className="pm-del" onClick={() => deleteImage(m)} aria-label="Delete image" disabled={busy}>

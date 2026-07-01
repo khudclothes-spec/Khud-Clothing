@@ -35,8 +35,21 @@ export default function AdminOrdersPage() {
   }
 
   async function updateStatus(orderId, status) {
+    const prevOrders = orders;
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
-    await supabase.from("orders").update({ status }).eq("id", orderId);
+    // Route through the API so the status is saved AND the customer is emailed
+    // about the change, all server-side. Roll back the UI if it fails.
+    try {
+      const res = await fetch("/api/orders/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, status })
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (err) {
+      console.error("[admin] status update failed", err);
+      setOrders(prevOrders);
+    }
   }
 
   const visible = filter === "all" ? orders : orders.filter((o) => o.status === filter);

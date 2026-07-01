@@ -2,21 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "@/components/Icons";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { useCart } from "@/components/CartContext";
 import { createClient } from "@/lib/supabase";
-import { COLORS, TEE_PATH, customColors, formatPrice } from "@/lib/data";
+import { COLORS, TEE_PATH, resolveSwatch, formatPrice } from "@/lib/data";
 
 const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL"];
 
-const COLOR_HEX = customColors.reduce((acc, c) => {
-  acc[c.name.toLowerCase()] = c.hex;
-  return acc;
-}, {});
-
 function swatchFor(name) {
-  return COLOR_HEX[name?.toLowerCase()] ?? COLORS.taupe;
+  return resolveSwatch(name);
 }
 
 function sortSizes(sizes) {
@@ -79,6 +75,18 @@ export function ProductDetail({ product }) {
       supabase.removeChannel(channel);
     };
   }, [product.id]);
+
+  // Preload every image up front so switching colour or thumbnail is instant
+  // (the first/cover image already loads eagerly below).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    for (const m of product.media) {
+      if (!m.url) continue;
+      const img = new window.Image();
+      img.decoding = "async";
+      img.src = m.url;
+    }
+  }, [product.media]);
 
   // Distinct colours in the order they appear in the variants
   const colors = useMemo(() => {
@@ -208,7 +216,14 @@ export function ProductDetail({ product }) {
         <div className="pd-gallery">
           <div className="pd-main">
             {currentImage ? (
-              <img src={currentImage.url} alt={product.name} className="pd-main__img" />
+              <Image
+                src={currentImage.url}
+                alt={product.name}
+                className="pd-main__img"
+                fill
+                priority
+                sizes="(max-width: 700px) 100vw, 45vw"
+              />
             ) : (
               <div className="pd-main__placeholder">
                 <TeeGraphic path={TEE_PATH} fill={COLORS.ink} width="48%" />
@@ -250,7 +265,7 @@ export function ProductDetail({ product }) {
                   onClick={() => setImgIndex(i)}
                   aria-label={`View image ${i + 1}`}
                 >
-                  <img src={img.url} alt="" />
+                  <Image src={img.url} alt="" width={132} height={165} sizes="66px" />
                 </button>
               ))}
             </div>

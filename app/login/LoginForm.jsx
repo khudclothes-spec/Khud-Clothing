@@ -86,7 +86,13 @@ export function LoginForm() {
     const { data, error: authError } = await supabase.auth.signUp({
       email: signupData.email,
       password: signupData.password,
-      options: { data: { full_name: signupData.full_name } }
+      options: {
+        data: { full_name: signupData.full_name },
+        // After the user clicks the confirmation link, bring them back to the
+        // app so the browser session is established and the verify page can
+        // detect it and continue automatically.
+        emailRedirectTo: `${window.location.origin}/verify-email`
+      }
     });
 
     if (authError) {
@@ -109,11 +115,10 @@ export function LoginForm() {
       return;
     }
 
-    // Confirmation is still enabled in Supabase dashboard — switch to login tab
-    setTab("login");
-    setLoginData({ email: signupData.email, password: "" });
-    setError("Account created. Check your inbox to confirm your email, then sign in.");
-    setLoading(false);
+    // Confirmation is enabled — send them to the dedicated verify-email page,
+    // which shows the "check your inbox" state, polls for verification, and
+    // offers a resend button.
+    router.push(`/verify-email?email=${encodeURIComponent(signupData.email)}`);
   }
 
   return (

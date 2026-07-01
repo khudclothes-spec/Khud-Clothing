@@ -33,7 +33,6 @@ export function Newsletter() {
         />
         <button type="submit">Join</button>
       </form>
-      <div className="newsletter-note">Frontend demo, no email is stored.</div>
     </div>
   );
 }

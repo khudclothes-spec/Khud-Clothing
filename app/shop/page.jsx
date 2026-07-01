@@ -1,9 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "@/components/Icons";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { Reveal } from "@/components/Reveal";
 import { COLORS, categories as localCategories } from "@/lib/data";
-import { createServerClient } from "@/lib/supabase-server";
+import { createPublicClient } from "@/lib/supabase-server";
+
+export const revalidate = 60;
 
 export const metadata = {
   title: "Shop by Category",
@@ -16,21 +19,16 @@ export default async function ShopPage() {
   let categories = [];
 
   try {
-    const supabase = await createServerClient();
-    const { data: cats } = await supabase
-      .from("categories")
-      .select("id, name, slug, description, image_url")
-      .eq("is_active", true)
-      .order("name");
+    const supabase = createPublicClient();
+    const [catsRes, countRes] = await Promise.all([
+      supabase.from("categories").select("id, name, slug, description, image_url").eq("is_active", true).order("name"),
+      supabase.from("products").select("category_id").eq("status", "active")
+    ]);
 
-    if (cats?.length) {
-      const { data: prods } = await supabase
-        .from("products")
-        .select("category_id")
-        .eq("status", "active");
-
+    const cats = catsRes.data ?? [];
+    if (cats.length) {
       const counts = {};
-      (prods ?? []).forEach((p) => {
+      (countRes.data ?? []).forEach((p) => {
         if (p.category_id) counts[p.category_id] = (counts[p.category_id] ?? 0) + 1;
       });
 
@@ -68,7 +66,7 @@ export default async function ShopPage() {
               <>
                 <div className="category-card__art">
                   {category.image ? (
-                    <img src={category.image} alt={category.name} className="category-card__photo" />
+                    <Image src={category.image} alt={category.name} className="category-card__photo" fill sizes="(max-width: 700px) 45vw, 22vw" />
                   ) : (
                     <TeeGraphic fill={fill} width="50%" opacity={0.85} />
                   )}

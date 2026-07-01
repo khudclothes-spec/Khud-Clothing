@@ -1,11 +1,19 @@
 import { notFound } from "next/navigation";
-import { createServerClient } from "@/lib/supabase-server";
+import { createPublicClient } from "@/lib/supabase-server";
 import { ProductDetail } from "@/components/ProductDetail";
+
+export const revalidate = 60;
+
+// No build-time params; each product page is generated on first request and
+// then cached (ISR) for the revalidate window.
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   try {
-    const supabase = await createServerClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("products")
       .select("name, short_description")
@@ -29,7 +37,7 @@ export default async function ProductPage({ params }) {
 
   let product = null;
   try {
-    const supabase = await createServerClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("products")
       .select(

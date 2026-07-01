@@ -1,14 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "@/components/Icons";
 import { Newsletter } from "@/components/Newsletter";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { categories, COLORS, quality, steps, TEE_PATH, formatPrice } from "@/lib/data";
-import { createServerClient } from "@/lib/supabase-server";
+import { createPublicClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
 
 const HERO_PRODUCT_SELECT =
   "id, name, slug, price, status, is_hero, product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
+const FEATURED_SELECT =
+  "id, name, slug, price, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
+
+// Cache the public homepage and regenerate at most once a minute (ISR) so
+// navigating back is near-instant instead of re-querying the DB every time.
+export const revalidate = 60;
 
 export const metadata = {
   title: "Khud — Wear Your Imprint",
@@ -22,47 +29,26 @@ export default async function HomePage() {
   let heroProduct = null;
 
   try {
-    const supabase = await createServerClient();
+    const supabase = createPublicClient();
 
-    // Homepage hero = the admin-selected "best product" (one, must be active).
-    const { data: heroRows } = await supabase
-      .from("products")
-      .select(HERO_PRODUCT_SELECT)
-      .eq("is_hero", true)
-      .eq("status", "active")
-      .limit(1);
-    if (heroRows?.length) heroProduct = mapDbProduct(heroRows[0]);
+    // Fire every public query at once instead of awaiting them one by one.
+    const [heroRes, featuredRes, catsRes, countRes, reviewsRes] = await Promise.all([
+      supabase.from("products").select(HERO_PRODUCT_SELECT).eq("is_hero", true).eq("status", "active").limit(1),
+      supabase.from("products").select(FEATURED_SELECT).eq("status", "active").eq("is_featured", true).order("created_at", { ascending: false }).limit(4),
+      supabase.from("categories").select("id, name, slug, image_url").eq("is_active", true).order("name"),
+      supabase.from("products").select("category_id").eq("status", "active"),
+      supabase.from("reviews").select("id, rating, comment, created_at, profiles(full_name), products(name)").eq("approved", true).order("rating", { ascending: false }).order("created_at", { ascending: false }).limit(6)
+    ]);
 
-    const { data: dbProducts } = await supabase
-      .from("products")
-      .select("id, name, slug, price, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)")
-      .eq("status", "active")
-      .eq("is_featured", true)
-      .order("created_at", { ascending: false })
-      .limit(4);
+    if (heroRes.data?.length) heroProduct = mapDbProduct(heroRes.data[0]);
+    if (featuredRes.data?.length) featured = featuredRes.data.map(mapDbProduct);
 
-    if (dbProducts?.length) {
-      featured = dbProducts.map(mapDbProduct);
-    }
-
-    // Active categories for the "Shop by Category" grid below
-    const { data: cats } = await supabase
-      .from("categories")
-      .select("id, name, slug, image_url")
-      .eq("is_active", true)
-      .order("name");
-
-    if (cats?.length) {
-      const { data: prods } = await supabase
-        .from("products")
-        .select("category_id")
-        .eq("status", "active");
-
+    const cats = catsRes.data ?? [];
+    if (cats.length) {
       const counts = {};
-      (prods ?? []).forEach((p) => {
+      (countRes.data ?? []).forEach((p) => {
         if (p.category_id) counts[p.category_id] = (counts[p.category_id] ?? 0) + 1;
       });
-
       shopCategories = cats.map((c) => ({
         name: c.name,
         slug: c.slug,
@@ -71,15 +57,7 @@ export default async function HomePage() {
       }));
     }
 
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("id, rating, comment, created_at, profiles(full_name), products(name)")
-      .eq("approved", true)
-      .order("rating", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(6);
-
-    dbReviews = reviews ?? [];
+    dbReviews = reviewsRes.data ?? [];
   } catch {
     // DB not configured yet — local fallback is already set
   }
@@ -139,7 +117,7 @@ export default async function HomePage() {
           <div className="hero__stats" aria-label="Khud highlights">
             <Stat value="100%" label="Heavy Cotton" />
             <span className="stat__rule" />
-            <Stat value="3-5" label="Day Custom Print" />
+            <Stat value="5-7" label="Business Days Custom Print" />
             <span className="stat__rule" />
             <Stat value="PK" label="Made Local" />
           </div>
@@ -153,7 +131,7 @@ export default async function HomePage() {
                   <img src="/images/logo-black-writing.png" alt="" />
                 </div>
                 {heroProduct.image ? (
-                  <img src={heroProduct.image} alt={heroProduct.name} className="hero-visual__photo" />
+                  <Image src={heroProduct.image} alt={heroProduct.name} className="hero-visual__photo" fill priority sizes="(max-width: 900px) 90vw, 40vw" />
                 ) : (
                   <div className="hero-visual__tee">
                     <TeeGraphic path={TEE_PATH} fill={COLORS.ink} width="55%" />
@@ -201,7 +179,7 @@ export default async function HomePage() {
               <span className="italic-clay">imprint</span>, in four.
             </h2>
             <p className="dark-copy">
-              Bring a sketch, a photo, or a single line of text. We handle the rest: proof, print and stitch.
+              Bring a sketch, a photo, or a single line of text. We handle the rest: proof, print and deliver.
             </p>
             <Link href="/customize" className="button button--light">
               Start Customizing
@@ -230,7 +208,7 @@ export default async function HomePage() {
             <Link href={category.href} className="category-card" key={category.name}>
               <div className="category-card__art">
                 {category.image ? (
-                  <img src={category.image} alt={category.name} className="category-card__photo" />
+                  <Image src={category.image} alt={category.name} className="category-card__photo" fill sizes="(max-width: 700px) 45vw, 22vw" />
                 ) : (
                   <TeeGraphic fill={category.fill} width="50%" opacity={0.85} />
                 )}
@@ -305,7 +283,7 @@ export default async function HomePage() {
                 <br />
                 <span className="italic-clay">first drop.</span>
               </h2>
-              <p>Early access to Drop 01, custom-studio openings, and nothing else. Unsubscribe whenever.</p>
+              <p>Early access to Drop 01, custom-studio openings, and everything else. Unsubscribe whenever.</p>
             </div>
             <Newsletter />
           </div>

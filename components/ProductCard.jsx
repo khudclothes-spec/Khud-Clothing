@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { formatPrice } from "@/lib/data";
 import { useCart } from "@/components/CartContext";
 import { TeeGraphic } from "@/components/TeeGraphic";
 
-export function ProductCard({ product, compact = false }) {
+export function ProductCard({ product, compact = false, priority = false }) {
   const { addItem } = useCart();
   const inStock = product.inStock !== false; // default true for local products
   const href = product.slug ? `/product/${product.slug}` : null;
@@ -27,10 +28,13 @@ export function ProductCard({ product, compact = false }) {
     <div className="product-card__art">
       <div className="mockup-center">
         {product.image ? (
-          <img
+          <Image
             src={product.image}
             alt={product.name}
             className="product-card__img"
+            width={480}
+            height={600}
+            sizes="(max-width: 700px) 42vw, 22vw"
           />
         ) : (
           <TeeGraphic path={product.shape} fill={product.mockColor} width={compact ? "55%" : "60%"} />

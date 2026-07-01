@@ -1,5 +1,20 @@
 import { createServerClient as _createServerClient } from "@supabase/ssr";
+import { createClient as _createBrowserlessClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+
+/**
+ * Cookie-less anon client for PUBLIC reads (products, categories, reviews).
+ * Because it never touches cookies/headers, pages that use it can be statically
+ * generated and revalidated (ISR) instead of rendered dynamically per request —
+ * which makes navigation much faster. RLS still applies via the anon key.
+ */
+export function createPublicClient() {
+  return _createBrowserlessClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+}
 
 /**
  * Server Supabase client — use in Server Components, Route Handlers, and Server Actions.

@@ -96,6 +96,7 @@ Khud/
 - [app/admin/customization/page.jsx](app/admin/customization/page.jsx) toggles which categories are customizable + their mockup set.
 - [app/admin/customization/designs/page.jsx](app/admin/customization/designs/page.jsx) manages the reusable "Choose Design" templates.
 - [app/admin/storefront/page.jsx](app/admin/storefront/page.jsx) picks the homepage hero (best) product and the ≤3 footer categories.
+- [app/admin/layout.jsx](app/admin/layout.jsx) renders [components/AdminSidebar.jsx](components/AdminSidebar.jsx), a client sidebar that collapses to an off-canvas drawer (hamburger toggle) below 900px so the editing area gets the full width.
 
 ### Admin Route Behavior
 
@@ -248,6 +249,7 @@ Current order:
 15. [scripts/015_inventory_checkout_and_realtime.sql](scripts/015_inventory_checkout_and_realtime.sql)
 16. [scripts/016_customization.sql](scripts/016_customization.sql) — `categories.is_customizable` + `mockup_key`, the `design_templates` table, RLS, and seed.
 17. [scripts/017_storefront_settings.sql](scripts/017_storefront_settings.sql) — `products.is_hero` (homepage hero) + `categories.show_in_footer` (footer Shop column).
+18. [scripts/018_order_email_flags.sql](scripts/018_order_email_flags.sql) — `orders.confirmation_sent_at` (order-email idempotency).
 
 ## 9. Styling And UI Conventions
 
@@ -287,6 +289,20 @@ The practical pattern in the codebase is: try Supabase first, fall back to stati
 - Keep all style edits in [app/globals.css](app/globals.css) unless the project direction changes.
 - Treat [db/clothing_ecommerce_schema.sql](db/clothing_ecommerce_schema.sql) as the base contract and the migration scripts as tracked, meaningful source files.
 - When you need a route map, the app folder is the first place to inspect.
+- [upload.js](upload.js) is a standalone bulk uploader (`node upload.js`) that pushes the `Shirt_Mockups_Only_2/` designs to Supabase (products, variants, per-colour front/back media). It reads `.env.local`, uses the service-role key, derives category/price/colour/name from the filenames, and is idempotent (re-inserts by slug).
+- **Performance:** public pages (`/`, `/shop`, `/product/[slug]`, `/shop/[slug]`) use `createPublicClient()` (cookie-less anon) + `export const revalidate = 60` so they are ISR-cached (fast repeat navigation) instead of dynamic per-request; the homepage/shop queries run via `Promise.all`. ISR only kicks in for `next build && next start`, not `next dev`. Storefront images use `loading="lazy"`/`decoding="async"` (grids/thumbnails) and `fetchPriority="high"` (hero + product main image); [components/ProductDetail.jsx](components/ProductDetail.jsx) preloads all of a product's images so colour/thumbnail switches are instant.
+- **Colour swatches:** [lib/data.js](lib/data.js) `resolveSwatch(name)` + `SWATCH_HEX` map any colour name (dropdown options + custom colours + CSS keywords) to a display hex; used by [lib/mapDbProduct.js](lib/mapDbProduct.js) and [components/ProductDetail.jsx](components/ProductDetail.jsx). The admin colour dropdown is `customColors`.
+- **Images:** storefront product/category/hero images use `next/image` (config in [next.config.mjs](next.config.mjs) `images.remotePatterns` → `*.supabase.co`). Full-bleed spots use `fill`; ProductCard/thumbnails use explicit `width/height`.
+
+### Email system (full docs: [docs/email-system.md](docs/email-system.md))
+
+Two channels: **Supabase Auth** sends signup-verification + password-reset (we brand the templates in [docs/supabase-email-templates/](docs/supabase-email-templates/) and build the `/verify-email` UX); **our server** sends order emails via Resend.
+
+- **Never send from the client.** The client posts an order id to a route; content + delivery are server-side.
+- **Service:** [lib/email/](lib/email/) — `config.js` (brand + owner emails + env), `client.js` (Resend HTTP transport via `fetch`; no-ops with a warning if `RESEND_API_KEY` unset), `orders.js` (order model + senders). **Templates:** [emails/](emails/) are modular HTML-string builders (`layout.js`, `components.js`, three templates) — zero email-framework deps.
+- **Order confirmation:** [components/CartContext.jsx](components/CartContext.jsx) `placeOrder` fires `POST /api/orders/confirm` (fire-and-forget) → [app/api/orders/confirm/route.js](app/api/orders/confirm/route.js) authenticates + verifies ownership + idempotent (`orders.confirmation_sent_at`) → customer email + 4 owner notifications (`OWNER_EMAIL_1..4`).
+- **Status updates:** [app/admin/orders/page.jsx](app/admin/orders/page.jsx) routes status changes through `POST /api/orders/status` (admin-only) which updates `orders.status` AND emails the customer (`STATUS_COPY` in [emails/orderStatusUpdate.js](emails/orderStatusUpdate.js) covers confirmed/processing/shipped/delivered/cancelled).
+- **Verification:** [app/login/LoginForm.jsx](app/login/LoginForm.jsx) signup → `/verify-email` ([app/verify-email/page.jsx](app/verify-email/page.jsx)) which polls + `onAuthStateChange` + resend. Unverified users are blocked from checkout (client guard + route 403 + the RPC needs `auth.uid()`).
 - The `/customize` studio uses Fabric.js (client-only). Never import `fabric` at module top level — it touches the DOM and breaks SSR. Load it inside an effect (`await import("fabric")`), as [components/customize/StudioCanvas.jsx](components/customize/StudioCanvas.jsx) does.
 
 ## 14. Custom Studio (Fabric.js Editor)

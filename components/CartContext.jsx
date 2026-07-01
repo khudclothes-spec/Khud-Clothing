@@ -96,6 +96,11 @@ export function CartProvider({ children }) {
     async (shipping) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
+      // Defence in depth: Supabase already blocks unverified users from having a
+      // session, but never let one reach checkout.
+      if (!user.email_confirmed_at) {
+        throw new Error("Please verify your email before placing an order.");
+      }
 
       // Send only ids + quantities — price, totals and stock are revalidated
       // server-side, so a tampered cart cannot change what is charged or sold.
@@ -135,6 +140,17 @@ export function CartProvider({ children }) {
 
       console.info("[checkout] success", data);
       setCart([]);
+
+      // Fire the server-side confirmation + owner-notification emails. This only
+      // sends the order id; all email content + sending happens on the server.
+      // Fire-and-forget so the "order placed" screen is instant, and never let
+      // an email hiccup fail a paid order.
+      fetch("/api/orders/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: data.order_id })
+      }).catch((e) => console.warn("[checkout] email trigger failed", e));
+
       return { orderId: data.order_id, orderNumber: data.order_number };
     },
     [cart]

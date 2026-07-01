@@ -193,7 +193,7 @@ function ShellChrome({ children }) {
               <span className="announcement__spark">*</span>
               <span>Custom Orders Open</span>
               <span className="announcement__spark">*</span>
-              <span>Printed and Stitched Locally</span>
+              <span>Printed Locally</span>
               <span className="announcement__spark">*</span>
             </span>
           ))}

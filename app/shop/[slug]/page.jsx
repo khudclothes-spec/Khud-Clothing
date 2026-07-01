@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createServerClient } from "@/lib/supabase-server";
+import { createPublicClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
 import { CategoryShop } from "@/components/CategoryShop";
+
+export const revalidate = 60;
+
+// No build-time params; each category page is generated on first request and
+// then cached (ISR) for the revalidate window.
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   try {
-    const supabase = await createServerClient();
+    const supabase = createPublicClient();
     const { data: cat } = await supabase
       .from("categories")
       .select("name, description")
@@ -30,7 +38,7 @@ export default async function CategoryPage({ params }) {
   let products = [];
 
   try {
-    const supabase = await createServerClient();
+    const supabase = createPublicClient();
 
     const { data: cat } = await supabase
       .from("categories")
