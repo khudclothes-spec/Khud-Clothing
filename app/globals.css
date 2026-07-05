@@ -208,6 +208,28 @@ svg {
   transform-origin: top;
 }
 
+.pt-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.1s ease;
+}
+
+.page-transition.is-covering .pt-logo {
+  opacity: 1;
+  transition-delay: 0ms;
+}
+
+.page-transition.is-revealing .pt-logo {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
 .announcement {
   background: var(--ink);
   color: var(--bone);

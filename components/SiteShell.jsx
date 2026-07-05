@@ -181,6 +181,7 @@ function ShellChrome({ children }) {
         <div className="pt-panel" />
         <div className="pt-panel" />
         <div className="pt-panel" />
+        <img src="/images/logo-white-writing.png" alt="Khud" className="pt-logo" />
       </div>
 
       <div className="announcement" aria-label="Announcements">
