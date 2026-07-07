@@ -5794,3 +5794,300 @@ svg {
 .verify-foot {
   margin-top: 20px;
 }
+
+/* =====================================================================
+   Pricing: discounts, sold-out, payment methods, checkout summary
+   ===================================================================== */
+
+/* ---- Product card: discount badge + strike-through price ---- */
+.product-card__discount {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 9px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--clay);
+  color: var(--cream);
+  z-index: 2;
+}
+
+.product-card__price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.product-card__price .price-was {
+  color: var(--charcoal);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: line-through;
+}
+
+.product-card__price .price-now {
+  color: var(--clay);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* ---- Product detail: sale price + sold-out pill ---- */
+.pd-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.pd-soldout-pill {
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pd-price--sale .pd-price__now {
+  color: var(--clay);
+}
+
+.pd-price__off {
+  padding: 4px 10px;
+  border-radius: 3px;
+  background: var(--clay);
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ---- Checkout: payment methods ---- */
+.pay-methods {
+  display: grid;
+  gap: 10px;
+}
+
+.pay-method {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 8px;
+  background: var(--cream);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pay-method:hover {
+  border-color: var(--ink);
+}
+
+.pay-method.is-selected {
+  border-color: var(--ink);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.pay-method__radio {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--charcoal);
+  position: relative;
+}
+
+.pay-method.is-selected .pay-method__radio {
+  border-color: var(--ink);
+}
+
+.pay-method.is-selected .pay-method__radio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.pay-method__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-method__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pay-method__note {
+  font-size: 12px;
+  color: var(--charcoal);
+}
+
+/* ---- Checkout: order summary breakdown ---- */
+.checkout-summary .summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--charcoal);
+  margin-bottom: 6px;
+}
+
+.checkout-summary .summary-row span:last-child {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.checkout-summary .summary-row--discount span:last-child {
+  color: var(--clay);
+  font-weight: 700;
+}
+
+.checkout-summary .summary-row--total {
+  margin: 8px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line, #e7dfd1);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.checkout-summary .summary-row--total span {
+  color: var(--ink);
+}
+
+/* ---- Bag: free-shipping progress hint ---- */
+.ship-hint {
+  margin: 4px 0 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--cream);
+  border: 1px dashed var(--line, #e7dfd1);
+  font-size: 12px;
+  color: var(--charcoal);
+  text-align: center;
+}
+
+.ship-hint--unlocked {
+  border-style: solid;
+  border-color: var(--olive);
+  color: var(--olive);
+  font-weight: 600;
+}
+
+/* ---- Admin: discount preview + list price cell + sold-out pill ---- */
+.form-check--boxed {
+  padding: 10px 12px;
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 8px;
+  background: var(--cream);
+  align-self: end;
+}
+
+.price-preview {
+  margin: 4px 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 8px;
+  background: var(--cream);
+}
+
+.price-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.price-preview__grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.price-preview__label {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+
+.price-preview__val {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.price-preview__val--strong {
+  color: var(--clay);
+  font-weight: 800;
+}
+
+.price-preview__note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--charcoal);
+  font-style: italic;
+}
+
+.admin-price-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.admin-price-was {
+  font-size: 12px;
+  color: var(--charcoal);
+  text-decoration: line-through;
+}
+
+.admin-price-now {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.admin-price-now em {
+  font-style: normal;
+  color: var(--clay);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-soldout-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.order-detail__value--muted {
+  color: var(--charcoal);
+}
+
+@media (max-width: 640px) {
+  .price-preview__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

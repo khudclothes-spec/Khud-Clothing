@@ -28,7 +28,7 @@ export default function AdminOrdersPage() {
     setLoading(true);
     const { data } = await supabase
       .from("orders")
-      .select("id, order_number, status, subtotal, shipping_cost, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, product_id, products(name))")
+      .select("id, order_number, status, subtotal, shipping_cost, discount_amount, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, product_id, products(name))")
       .order("created_at", { ascending: false });
     setOrders(data ?? []);
     setLoading(false);
@@ -138,8 +138,12 @@ export default function AdminOrdersPage() {
                               <div>
                                 <div className="order-detail__label">Totals</div>
                                 <div className="order-detail__value">Subtotal: {money(o.subtotal)}</div>
-                                <div className="order-detail__value">Shipping: {money(o.shipping_cost)}</div>
+                                {Number(o.discount_amount) > 0 && (
+                                  <div className="order-detail__value">Discount: −{money(o.discount_amount)}</div>
+                                )}
+                                <div className="order-detail__value">Shipping: {Number(o.shipping_cost) > 0 ? money(o.shipping_cost) : "Free"}</div>
                                 <div className="order-detail__value order-detail__value--strong">Total: {money(o.total_amount)}</div>
+                                <div className="order-detail__value order-detail__value--muted">Payment: {o.payment_method === "online" ? "Online Payment" : "Cash on Delivery"}</div>
                               </div>
                             </div>
 

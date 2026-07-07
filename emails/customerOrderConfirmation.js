@@ -29,7 +29,7 @@ export function renderCustomerOrderConfirmation(order) {
       infoTable([
         { label: "Order number", value: order.orderNumber, strong: true },
         { label: "Order date", value: order.orderDate },
-        { label: "Payment", value: fulfilment.paymentMethod },
+        { label: "Payment", value: order.paymentMethodLabel || fulfilment.paymentMethod },
         { label: "Est. processing", value: fulfilment.processingTime }
       ]),
       { title: "Order summary" }

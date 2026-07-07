@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase-server";
 import { ProductDetail } from "@/components/ProductDetail";
+import { productPricing } from "@/lib/pricing";
 
 export const revalidate = 60;
 
@@ -41,7 +42,7 @@ export default async function ProductPage({ params }) {
     const { data } = await supabase
       .from("products")
       .select(
-        "id, name, slug, price, compare_at_price, description, short_description, status, categories(name, slug), product_media(id, storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)"
+        "id, name, slug, price, discount_percentage, is_sold_out, compare_at_price, description, short_description, status, categories(name, slug), product_media(id, storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)"
       )
       .eq("slug", slug)
       .eq("status", "active")
@@ -56,11 +57,17 @@ export default async function ProductPage({ params }) {
 
   const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images`;
 
+  const pricing = productPricing({ price: product.price, discountPercent: product.discount_percentage });
+
   const normalized = {
     id: product.id,
     name: product.name,
     slug: product.slug,
-    price: Number(product.price),
+    price: pricing.price,                 // effective (discounted) selling price
+    originalPrice: pricing.original,
+    discountPercent: pricing.discountPercent,
+    hasDiscount: pricing.hasDiscount,
+    isSoldOut: product.is_sold_out === true,
     compareAtPrice: product.compare_at_price != null ? Number(product.compare_at_price) : null,
     description: product.description ?? "",
     shortDescription: product.short_description ?? "",

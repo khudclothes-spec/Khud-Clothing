@@ -148,9 +148,12 @@ export function ProductDetail({ product }) {
   }, [selectedColor, mediaByColor, product.media]);
 
   const currentImage = images[Math.min(imgIndex, Math.max(images.length - 1, 0))] ?? null;
-  const colorIsAvailable = selectedColor ? colorAvailable(selectedColor) : false;
+  // Admin "Sold Out" toggle overrides everything — product stays visible but
+  // can't be bought.
+  const soldOut = product.isSoldOut === true;
+  const colorIsAvailable = !soldOut && (selectedColor ? colorAvailable(selectedColor) : false);
   const sizeIsAvailable =
-    selectedColor && selectedSize ? sizeAvailableIn(selectedColor, selectedSize) : false;
+    !soldOut && selectedColor && selectedSize ? sizeAvailableIn(selectedColor, selectedSize) : false;
   const canAdd = colorIsAvailable && sizeIsAvailable;
 
   // Live stock counts for the availability line near the Add to bag button.
@@ -189,11 +192,13 @@ export function ProductDetail({ product }) {
     });
   }
 
-  const addLabel = !colorIsAvailable
+  const addLabel = soldOut
     ? "Sold out"
-    : !selectedSize || !sizeIsAvailable
-      ? "Select a size"
-      : "Add to bag";
+    : !colorIsAvailable
+      ? "Sold out"
+      : !selectedSize || !sizeIsAvailable
+        ? "Select a size"
+        : "Add to bag";
 
   return (
     <main className="container product-detail" data-reveal>
@@ -252,7 +257,7 @@ export function ProductDetail({ product }) {
               </>
             )}
 
-            {!colorIsAvailable && <span className="pd-soldout-tag">Sold out</span>}
+            {(soldOut || !colorIsAvailable) && <span className="pd-soldout-tag">Sold out</span>}
           </div>
 
           {images.length > 1 && (
@@ -275,12 +280,25 @@ export function ProductDetail({ product }) {
         {/* Info / options */}
         <div className="pd-info">
           {product.category?.name && <div className="eyebrow">{product.category.name}</div>}
-          <h1 className="display display--large pd-title">{product.name}</h1>
+          <div className="pd-title-row">
+            <h1 className="display display--large pd-title">{product.name}</h1>
+            {soldOut && <span className="pd-soldout-pill">Sold Out</span>}
+          </div>
 
-          <div className="pd-price">
-            {formatPrice(product.price)}
-            {product.compareAtPrice && product.compareAtPrice > product.price && (
-              <span className="pd-price__compare">{formatPrice(product.compareAtPrice)}</span>
+          <div className={`pd-price ${product.hasDiscount ? "pd-price--sale" : ""}`}>
+            {product.hasDiscount ? (
+              <>
+                <span className="pd-price__now">{formatPrice(product.price)}</span>
+                <span className="pd-price__compare">{formatPrice(product.originalPrice)}</span>
+                <span className="pd-price__off">{product.discountPercent}% OFF</span>
+              </>
+            ) : (
+              <>
+                {formatPrice(product.price)}
+                {product.compareAtPrice && product.compareAtPrice > product.price && (
+                  <span className="pd-price__compare">{formatPrice(product.compareAtPrice)}</span>
+                )}
+              </>
             )}
           </div>
 
@@ -318,7 +336,7 @@ export function ProductDetail({ product }) {
               <div className="pd-option__label">Size</div>
               <div className="pd-sizes">
                 {sizeScale.map((size) => {
-                  const avail = selectedColor ? sizeAvailableIn(selectedColor, size) : false;
+                  const avail = !soldOut && selectedColor ? sizeAvailableIn(selectedColor, size) : false;
                   return (
                     <button
                       type="button"

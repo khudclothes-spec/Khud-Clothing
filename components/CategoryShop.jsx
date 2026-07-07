@@ -161,8 +161,8 @@ export function CategoryShop({ products: initialProducts }) {
           </div>
         ) : (
           <div className="product-grid product-grid--shop">
-            {filtered.map((product) => (
-              <ProductCard key={product.id || product.name} product={product} compact />
+            {filtered.map((product, i) => (
+              <ProductCard key={product.id || product.name} product={product} compact priority={i === 0} />
             ))}
           </div>
         )}

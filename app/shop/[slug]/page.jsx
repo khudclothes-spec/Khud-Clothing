@@ -52,7 +52,7 @@ export default async function CategoryPage({ params }) {
 
     const { data: dbProducts } = await supabase
       .from("products")
-      .select("id, name, slug, price, short_description, status, is_featured, created_at, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)")
+      .select("id, name, slug, price, discount_percentage, is_sold_out, short_description, status, is_featured, created_at, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)")
       .eq("status", "active")
       .eq("category_id", cat.id)
       .order("created_at", { ascending: false });

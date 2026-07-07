@@ -11,8 +11,8 @@ export function FeaturedProducts({ products }) {
   const live = useLiveStock(products);
   return (
     <div className="product-grid">
-      {live.map((product) => (
-        <ProductCard key={product.id || product.slug || product.name} product={product} />
+      {live.map((product, i) => (
+        <ProductCard key={product.id || product.slug || product.name} product={product} priority={i === 0} />
       ))}
     </div>
   );

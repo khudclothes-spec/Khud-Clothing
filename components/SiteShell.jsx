@@ -9,6 +9,7 @@ import { ArrowRight, Bag, Close, Menu, ChevronDown, User, LogOut, Dashboard } fr
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { navLinks, formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
+import { PAYMENT_METHODS, orderTotals, itemsToFreeShipping, FREE_SHIPPING_MIN_ITEMS, SHIPPING_FLAT } from "@/lib/pricing";
 
 const blackLogo = "/images/logo-black-writing.png";
 const whiteLogo = "/images/logo-white-writing.png";
@@ -190,7 +191,7 @@ function ShellChrome({ children }) {
             <span key={index} style={{ display: "inline-flex", gap: 52 }}>
               <span>Drop 01 / Summer '26</span>
               <span className="announcement__spark">*</span>
-              <span>Free Shipping Over Rs 10,000</span>
+              <span>Free Shipping on {FREE_SHIPPING_MIN_ITEMS}+ Items</span>
               <span className="announcement__spark">*</span>
               <span>Custom Orders Open</span>
               <span className="announcement__spark">*</span>
@@ -470,14 +471,19 @@ function FooterColumn({ title, links, handleLink }) {
 }
 
 function CartDrawer({ navigate, authUser }) {
-  const { cart, cartCount, subtotal, cartOpen, closeCart, changeQty, removeItem, placeOrder } = useCart();
+  const { cart, cartCount, subtotal, subtotalNumber, cartOpen, closeCart, changeQty, removeItem, placeOrder } = useCart();
   const [step, setStep] = useState("bag"); // "bag" | "checkout" | "done"
   const [shipping, setShipping] = useState({
     full_name: "", phone: "", address_line1: "", address_line2: "", city: "", state: "", postal_code: ""
   });
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [orderId, setOrderId] = useState(null);
+
+  // Live order breakdown — mirrors the process_checkout RPC exactly.
+  const totals = orderTotals({ subtotal: subtotalNumber, itemCount: cartCount, paymentMethod });
+  const toFree = itemsToFreeShipping(cartCount);
 
   // Reset to bag view whenever drawer is opened
   useEffect(() => {
@@ -494,7 +500,7 @@ function CartDrawer({ navigate, authUser }) {
     setPlacing(true);
     setOrderError("");
     try {
-      const result = await placeOrder(shipping);
+      const result = await placeOrder({ ...shipping, payment_method: paymentMethod });
       setOrderId(result.orderId);
       setStep("done");
     } catch (err) {
@@ -577,14 +583,54 @@ function CartDrawer({ navigate, authUser }) {
               <label className="form-label">Postal Code *</label>
               <input className="form-input" required value={shipping.postal_code} onChange={(e) => updateShipping("postal_code", e.target.value)} />
             </div>
-            <div className="cart-summary" style={{ marginTop: "auto", paddingTop: 16 }}>
-              <div className="subtotal">
-                <span>Total</span>
-                <span>{subtotal}</span>
+
+            <div className="form-group">
+              <label className="form-label">Payment Method *</label>
+              <div className="pay-methods">
+                {PAYMENT_METHODS.map((m) => (
+                  <button
+                    type="button"
+                    key={m.value}
+                    className={`pay-method ${paymentMethod === m.value ? "is-selected" : ""}`}
+                    onClick={() => setPaymentMethod(m.value)}
+                    aria-pressed={paymentMethod === m.value}
+                  >
+                    <span className="pay-method__radio" aria-hidden="true" />
+                    <span className="pay-method__text">
+                      <span className="pay-method__label">{m.label}</span>
+                      <span className="pay-method__note">{m.note}</span>
+                    </span>
+                  </button>
+                ))}
               </div>
-              <div className="checkout-note">Cash on delivery · Nationwide shipping</div>
+            </div>
+
+            <div className="cart-summary checkout-summary" style={{ marginTop: "auto", paddingTop: 16 }}>
+              <div className="summary-row">
+                <span>Subtotal</span>
+                <span>{formatPrice(totals.subtotal)}</span>
+              </div>
+              {totals.onlineDiscount > 0 && (
+                <div className="summary-row summary-row--discount">
+                  <span>Discount (5%)</span>
+                  <span>−{formatPrice(totals.onlineDiscount)}</span>
+                </div>
+              )}
+              <div className="summary-row">
+                <span>Shipping</span>
+                <span>{totals.freeShipping ? "Free" : formatPrice(totals.shipping)}</span>
+              </div>
+              <div className="subtotal summary-row--total">
+                <span>Total</span>
+                <span>{formatPrice(totals.total)}</span>
+              </div>
+              <div className="checkout-note">
+                {totals.freeShipping
+                  ? "Free shipping applied · Nationwide"
+                  : `Rs ${SHIPPING_FLAT} shipping · Free on ${FREE_SHIPPING_MIN_ITEMS}+ items`}
+              </div>
               <button type="submit" className="button button--dark" style={{ width: "100%" }} disabled={placing}>
-                {placing ? "Placing order…" : "Place Order (COD)"}
+                {placing ? "Placing order…" : `Place Order · ${formatPrice(totals.total)}`}
               </button>
             </div>
           </form>
@@ -666,7 +712,11 @@ function CartDrawer({ navigate, authUser }) {
                 <span>Subtotal</span>
                 <span>{subtotal}</span>
               </div>
-              <div className="checkout-note">Shipping calculated at checkout.</div>
+              <div className={`ship-hint ${toFree === 0 ? "ship-hint--unlocked" : ""}`}>
+                {toFree === 0
+                  ? "Free shipping unlocked"
+                  : `Add ${toFree} more item${toFree !== 1 ? "s" : ""} for free shipping`}
+              </div>
               <button
                 type="button"
                 className="button button--dark"

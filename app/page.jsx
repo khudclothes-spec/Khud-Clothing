@@ -9,9 +9,9 @@ import { createPublicClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
 
 const HERO_PRODUCT_SELECT =
-  "id, name, slug, price, status, is_hero, product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
+  "id, name, slug, price, discount_percentage, is_sold_out, status, is_hero, product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
 const FEATURED_SELECT =
-  "id, name, slug, price, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
+  "id, name, slug, price, discount_percentage, is_sold_out, short_description, status, is_featured, categories(name), product_media(storage_path, color, is_primary, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity)";
 
 // Cache the public homepage and regenerate at most once a minute (ISR) so
 // navigating back is near-instant instead of re-querying the DB every time.

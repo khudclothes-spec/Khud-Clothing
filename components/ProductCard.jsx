@@ -10,15 +10,16 @@ import { TeeGraphic } from "@/components/TeeGraphic";
 export function ProductCard({ product, compact = false, priority = false }) {
   const { addItem } = useCart();
   const inStock = product.inStock !== false; // default true for local products
+  const soldOut = product.isSoldOut === true || !inStock;
   const href = product.slug ? `/product/${product.slug}` : null;
 
   function handleAdd() {
-    if (!inStock) return;
+    if (soldOut) return;
     addItem({
       key: product.id || product.name,
       name: product.name,
       meta: product.category,
-      price: product.price,
+      price: product.price, // effective (discounted) selling price
       shape: product.shape,
       image: product.image ?? null
     });
@@ -35,11 +36,15 @@ export function ProductCard({ product, compact = false, priority = false }) {
             width={480}
             height={600}
             sizes="(max-width: 700px) 42vw, 22vw"
+            priority={priority}
           />
         ) : (
           <TeeGraphic path={product.shape} fill={product.mockColor} width={compact ? "55%" : "60%"} />
         )}
       </div>
+      {product.hasDiscount ? (
+        <span className="product-card__discount">{product.discountPercent}% OFF</span>
+      ) : null}
       {product.badge ? (
         <span
           className="product-card__badge"
@@ -48,7 +53,7 @@ export function ProductCard({ product, compact = false, priority = false }) {
           {product.badge}
         </span>
       ) : null}
-      {!inStock ? (
+      {soldOut ? (
         <div className="sold-out-label">Sold Out</div>
       ) : href ? (
         <div className="quick-add">
@@ -71,7 +76,16 @@ export function ProductCard({ product, compact = false, priority = false }) {
           <div className="product-card__name">{product.name}</div>
           <div className="product-card__cat">{product.category}</div>
         </div>
-        <div className="product-card__price">{formatPrice(product.price)}</div>
+        <div className="product-card__price">
+          {product.hasDiscount ? (
+            <>
+              <span className="price-was">{formatPrice(product.originalPrice)}</span>
+              <span className="price-now">{formatPrice(product.price)}</span>
+            </>
+          ) : (
+            formatPrice(product.price)
+          )}
+        </div>
       </div>
       {product.shortDescription ? (
         <p className="product-card__desc">{product.shortDescription}</p>
@@ -91,7 +105,7 @@ export function ProductCard({ product, compact = false, priority = false }) {
 
   return (
     <motion.article
-      className={`product-card${!inStock ? " product-card--sold-out" : ""}`}
+      className={`product-card${soldOut ? " product-card--sold-out" : ""}`}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}

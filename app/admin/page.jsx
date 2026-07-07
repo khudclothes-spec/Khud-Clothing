@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { customColors, customSizes } from "@/lib/data";
+import { customColors, customSizes, formatPrice } from "@/lib/data";
+import { clampPercent, rawDiscountedPrice, discountedPrice } from "@/lib/pricing";
 import { ChevronDown, Close } from "@/components/Icons";
 import { ProductMediaManager } from "@/components/ProductMediaManager";
 
@@ -24,12 +25,55 @@ function emptyProductForm() {
     name: "",
     slug: "",
     price: "",
+    discount_percentage: 0,
+    is_sold_out: false,
     category_id: "",
     description: "",
     short_description: "",
     status: "active",
     is_featured: false
   };
+}
+
+// Live read-out of what the discount produces — the admin never calculates a
+// price by hand. Shared by the add-product modal and the inline row editor.
+function PricePreview({ price, discount }) {
+  const base = Number(price) || 0;
+  const pct = clampPercent(discount);
+  if (!base || pct <= 0) return null;
+  const calculated = rawDiscountedPrice(base, pct);
+  const rounded = discountedPrice(base, pct);
+  return (
+    <div className="price-preview">
+      <div className="price-preview__grid">
+        <div><span className="price-preview__label">Original</span><span className="price-preview__val">{formatPrice(base)}</span></div>
+        <div><span className="price-preview__label">Discount</span><span className="price-preview__val">{pct}%</span></div>
+        <div><span className="price-preview__label">Calculated</span><span className="price-preview__val">{formatPrice(calculated)}</span></div>
+        <div><span className="price-preview__label">Selling price</span><span className="price-preview__val price-preview__val--strong">{formatPrice(rounded)}</span></div>
+      </div>
+      <p className="price-preview__note">The selling price is automatically rounded to the nearest 49 or 99 for better pricing psychology.</p>
+    </div>
+  );
+}
+
+// Discount % + Sold-Out toggle + live price preview. Both forms drive their
+// state through a name-based `handleField`, so this stays presentational.
+function PricingFields({ form, handleField, idPrefix }) {
+  return (
+    <>
+      <div className="admin-form-row admin-form-row--2">
+        <div className="form-group">
+          <label className="form-label">Discount %</label>
+          <input name="discount_percentage" type="number" min="0" max="100" step="1" className="form-input" value={form.discount_percentage} onChange={handleField} placeholder="0" />
+        </div>
+        <div className="form-check form-check--boxed">
+          <input type="checkbox" id={`${idPrefix}-soldout`} name="is_sold_out" checked={!!form.is_sold_out} onChange={handleField} className="form-checkbox" />
+          <label htmlFor={`${idPrefix}-soldout`} className="form-check-label">Sold Out — keep visible but block purchase</label>
+        </div>
+      </div>
+      <PricePreview price={form.price} discount={form.discount_percentage} />
+    </>
+  );
 }
 
 export default function AdminProductsPage() {
@@ -43,19 +87,25 @@ export default function AdminProductsPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  async function fetchAll() {
-    setLoading(true);
+  // `silent` re-fetches WITHOUT flipping the global loading flag, so the table
+  // is never swapped for a spinner mid-edit — which is what reset the admin's
+  // scroll position to the top. In-place data updates preserve scroll.
+  async function fetchAll(silent = false) {
+    if (!silent) setLoading(true);
     const [{ data: prods }, { data: cats }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, slug, price, status, is_featured, category_id, short_description, description, created_at, categories(name), product_media(id, storage_path, is_primary, color, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity, sku, is_active)")
+        .select("id, name, slug, price, discount_percentage, is_sold_out, status, is_featured, category_id, short_description, description, created_at, categories(name), product_media(id, storage_path, is_primary, color, is_color_cover, sort_order), product_variants(id, color, size, stock_quantity, sku, is_active)")
         .order("created_at", { ascending: false }),
       supabase.from("categories").select("id, name").eq("is_active", true).order("name")
     ]);
     setProducts(prods ?? []);
     setCategories(cats ?? []);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
+
+  // Background refresh used after in-row mutations (no spinner, no scroll jump).
+  const refresh = () => fetchAll(true);
 
   function getPublicUrl(storagePath) {
     if (!storagePath) return null;
@@ -79,13 +129,13 @@ export default function AdminProductsPage() {
   async function toggleStatus(product) {
     const next = product.status === "active" ? "draft" : "active";
     await supabase.from("products").update({ status: next }).eq("id", product.id);
-    await fetchAll();
+    await refresh();
   }
 
   async function handleDelete(productId) {
     await supabase.from("products").delete().eq("id", productId);
     setDeleteConfirm(null);
-    await fetchAll();
+    await refresh();
   }
 
   return (
@@ -138,9 +188,10 @@ export default function AdminProductsPage() {
                     variantSummary={vs}
                     isOpen={isOpen}
                     onToggleExpand={() => setExpandedId(isOpen ? null : p.id)}
+                    onClose={() => setExpandedId(null)}
                     onToggleStatus={() => toggleStatus(p)}
                     onAskDelete={() => setDeleteConfirm(p.id)}
-                    onChanged={fetchAll}
+                    onChanged={refresh}
                     getPublicUrl={getPublicUrl}
                   />
                 );
@@ -156,7 +207,7 @@ export default function AdminProductsPage() {
           categories={categories}
           getPublicUrl={getPublicUrl}
           onClose={() => setShowAdd(false)}
-          onSaved={async () => { setShowAdd(false); await fetchAll(); }}
+          onSaved={async () => { setShowAdd(false); await refresh(); }}
         />
       )}
 
@@ -178,11 +229,13 @@ export default function AdminProductsPage() {
 
 /* ───────────────────────── Product row (expandable + inline edit) ───────────────────────── */
 
-function ProductRow({ product, categories, supabase, img, variantSummary, isOpen, onToggleExpand, onToggleStatus, onAskDelete, onChanged, getPublicUrl }) {
+function ProductRow({ product, categories, supabase, img, variantSummary, isOpen, onToggleExpand, onClose, onToggleStatus, onAskDelete, onChanged, getPublicUrl }) {
   const [form, setForm] = useState(() => ({
     name: product.name ?? "",
     slug: product.slug ?? "",
     price: product.price ?? "",
+    discount_percentage: product.discount_percentage ?? 0,
+    is_sold_out: product.is_sold_out ?? false,
     category_id: product.category_id ?? "",
     description: product.description ?? "",
     short_description: product.short_description ?? "",
@@ -217,6 +270,8 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
         name: form.name.trim(),
         slug: form.slug.trim(),
         price: parseFloat(form.price),
+        discount_percentage: clampPercent(form.discount_percentage),
+        is_sold_out: !!form.is_sold_out,
         category_id: form.category_id || null,
         description: form.description.trim() || null,
         short_description: form.short_description.trim() || null,
@@ -236,6 +291,7 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
       }
 
       await onChanged();
+      onClose?.(); // Saving is one of the two actions that exit edit mode.
     } catch (err) {
       setError(err.message);
     } finally {
@@ -285,11 +341,23 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
           </div>
         </td>
         <td>
-          <div className="admin-product-name">{product.name}</div>
+          <div className="admin-product-name">
+            {product.name}
+            {product.is_sold_out && <span className="admin-soldout-pill">Sold out</span>}
+          </div>
           <div className="admin-product-slug">{product.slug}</div>
         </td>
         <td>{product.categories?.name ?? <span className="admin-muted">—</span>}</td>
-        <td>Rs {Number(product.price).toLocaleString()}</td>
+        <td>
+          {product.discount_percentage > 0 ? (
+            <div className="admin-price-cell">
+              <span className="admin-price-was">Rs {Number(product.price).toLocaleString()}</span>
+              <span className="admin-price-now">Rs {discountedPrice(product.price, product.discount_percentage).toLocaleString()} <em>−{product.discount_percentage}%</em></span>
+            </div>
+          ) : (
+            `Rs ${Number(product.price).toLocaleString()}`
+          )}
+        </td>
         <td>
           {variantSummary.total === 0 ? (
             <span className="admin-muted">—</span>
@@ -346,6 +414,8 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
                     </select>
                   </div>
                 </div>
+
+                <PricingFields form={form} handleField={handleField} idPrefix={`row-${product.id}`} />
 
                 <div className="form-group">
                   <label className="form-label">Short description</label>
@@ -433,7 +503,7 @@ function ProductRow({ product, categories, supabase, img, variantSummary, isOpen
                 />
 
                 <div className="admin-detail__foot">
-                  <button type="button" className="button button--outline" onClick={onToggleExpand}>Cancel</button>
+                  <button type="button" className="button button--outline" onClick={onClose}>Cancel</button>
                   <button type="submit" className="button button--dark" disabled={saving}>
                     {saving ? "Saving…" : "Save changes"}
                   </button>
@@ -513,6 +583,8 @@ function AddProductModal({ supabase, categories, getPublicUrl, onClose, onSaved 
         name: form.name.trim(),
         slug,
         price: parseFloat(form.price),
+        discount_percentage: clampPercent(form.discount_percentage),
+        is_sold_out: !!form.is_sold_out,
         category_id: form.category_id || null,
         description: form.description.trim() || null,
         short_description: form.short_description.trim() || null,
@@ -594,6 +666,8 @@ function AddProductModal({ supabase, categories, getPublicUrl, onClose, onSaved 
               </select>
             </div>
           </div>
+
+          <PricingFields form={form} handleField={handleField} idPrefix="add" />
 
           <div className="form-group">
             <label className="form-label">Short description</label>

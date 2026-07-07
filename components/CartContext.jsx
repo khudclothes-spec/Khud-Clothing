@@ -21,6 +21,10 @@ function parseCheckoutError(message) {
   if (message.startsWith("VARIANT_NOT_FOUND")) {
     return "An item in your bag is no longer available. Please remove it and try again.";
   }
+  if (message.startsWith("SOLD_OUT|")) {
+    const [, name] = message.split("|");
+    return `${name || "An item in your bag"} is sold out — please remove it from your bag.`;
+  }
   if (message.includes("NOT_AUTHENTICATED")) return "Not signed in";
   if (message.includes("EMPTY_CART")) return "Your bag is empty.";
   if (message.includes("INVALID_QUANTITY")) return "Please check the quantities in your bag.";
@@ -129,7 +133,8 @@ export function CartProvider({ children }) {
           phone: shipping.phone,
           address: shippingAddress,
           city: shipping.city,
-          notes: null
+          notes: null,
+          payment_method: shipping.payment_method === "online" ? "online" : "cod"
         }
       });
 

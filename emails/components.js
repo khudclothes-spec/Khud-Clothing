@@ -79,15 +79,24 @@ export function itemsTable(items) {
   </table>`;
 }
 
-// Totals block (subtotal / shipping / grand total).
-export function totals({ subtotal, shippingCost, total }) {
+// Totals block (subtotal / discount / shipping / grand total).
+export function totals({ subtotal, shippingCost, total, discount = 0 }) {
   const shipLabel = Number(shippingCost) > 0 ? money(shippingCost) : "Free";
+  const discountRow =
+    Number(discount) > 0
+      ? `
+    <tr>
+      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Discount</td>
+      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.clay};text-align:right;">−${money(discount)}</td>
+    </tr>`
+      : "";
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin-top:12px;">
     <tr>
       <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Subtotal</td>
       <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.ink};text-align:right;">${money(subtotal)}</td>
     </tr>
+    ${discountRow}
     <tr>
       <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Shipping</td>
       <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.ink};text-align:right;">${shipLabel}</td>

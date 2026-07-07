@@ -370,3 +370,31 @@ are not part of the Supabase checkout RPC).
 - **Footer Shop column.** `categories.show_in_footer` (migration 017) flags ≤3 categories. [components/SiteShell.jsx](components/SiteShell.jsx) shows "All categories" + those 3; the Studio column is Customize / About / Size Guide. Admin selects them on the same storefront page (hard-capped at 3).
 - **Customize card image.** The "Customize" card in the homepage category grid uses `/mockups/classic/black/front.png`.
 - **Add-product flow.** [app/admin/page.jsx](app/admin/page.jsx) `AddProductModal` is now two steps: step 1 creates the product + variants (colours/sizes required); step 2 reuses [ProductMediaManager](components/ProductMediaManager.jsx) so the admin adds **unlimited images per colour** (no more single "uncategorised" image). The inline edit flow is unchanged.
+
+## 15. Pricing: discounts, sold-out, shipping & payment
+
+All money maths lives in one place — [lib/pricing.js](lib/pricing.js) — and the
+`process_checkout` RPC mirrors it in SQL so the database charges exactly what the
+UI shows. Never hardcode a price rule in a component; import from `lib/pricing`.
+
+### Per-product discounts (Feature)
+- `products.discount_percentage` (0–100, migration [019](scripts/019_pricing_discounts_soldout.sql)). There is **no stored sale price** — the selling price is *derived* from `price + discount_percentage` in both JS (`discountedPrice`) and SQL, so they can never drift.
+- Charm rounding: `roundToCharm(v) = round(v/100)*100 - 1` → always a `…99` ending (e.g. 1500−20% → 1199, 2390−15% → 1999, 5200−10% → 4699). The RPC uses the identical `round(price*(1-pct/100)/100)*100 - 1`.
+- `productPricing({price, discountPercent})` returns `{ original, price, discountPercent, hasDiscount, saved }`. Mappers ([lib/mapDbProduct.js](lib/mapDbProduct.js), [app/product/[slug]/page.jsx](app/product/[slug]/page.jsx)) expose `price` (effective), `originalPrice`, `discountPercent`, `hasDiscount`. **`product.price` everywhere is the discounted selling price** (so cart/subtotal maths is automatic); `originalPrice` is the struck-through original.
+- Display: [ProductCard](components/ProductCard.jsx) (corner `% OFF` badge + was/now price) and [ProductDetail](components/ProductDetail.jsx) (`pd-price--sale` with `pd-price__now` / `__compare` / `__off`).
+
+### Sold-out (Feature)
+- `products.is_sold_out` (migration 019). Sold-out products **stay visible** but can't be bought. Admin toggles it in the editor; the RPC rejects them with `SOLD_OUT|<name>`.
+- `mapDbProduct` folds it into `inStock` and exposes `isSoldOut`. [ProductCard](components/ProductCard.jsx) → `soldOut = isSoldOut || !inStock` (badge + disabled quick-add). [ProductDetail](components/ProductDetail.jsx) → `soldOut` disables add, crosses out all sizes, shows a "Sold Out" pill by the title.
+
+### Shipping & payment (Feature — cart/checkout in [components/SiteShell.jsx](components/SiteShell.jsx) `CartDrawer`)
+- Shipping is **item-count based**: `SHIPPING_FLAT` Rs 230, free at `FREE_SHIPPING_MIN_ITEMS` (3)+ items. The announcement bar and the bag "add N more for free shipping" hint read from these constants.
+- Two payment methods (`PAYMENT_METHODS`): `cod` (no change) and `online` (5% off subtotal, `ONLINE_DISCOUNT_RATE`). The checkout summary uses `orderTotals({subtotal, itemCount, paymentMethod})` → `{ subtotal, onlineDiscount, shipping, freeShipping, total }` and shows Subtotal / Discount / Shipping / Total. `paymentMethod` is passed to `placeOrder` and forwarded inside `p_customer.payment_method`.
+
+### Server of record
+- RPC [scripts/020_checkout_pricing_rpc.sql](scripts/020_checkout_pricing_rpc.sql): computes effective per-item price (discount + charm round), **rejects sold-out**, sums an item count, applies the online 5% + item-based shipping, and stores `subtotal / discount_amount / payment_method / shipping_cost / total_amount`. `order_items.unit_price` snapshots the discounted price.
+- Order emails: `buildOrderModel` ([lib/email/orders.js](lib/email/orders.js)) surfaces `discount` + `paymentMethodLabel`; `totals()` ([emails/components.js](emails/components.js)) renders a Discount row; the confirmation shows the real payment method. Admin orders detail ([app/admin/orders/page.jsx](app/admin/orders/page.jsx)) shows discount + payment + "Free" shipping.
+- **Migrations to run in Supabase:** [019_pricing_discounts_soldout.sql](scripts/019_pricing_discounts_soldout.sql) then [020_checkout_pricing_rpc.sql](scripts/020_checkout_pricing_rpc.sql).
+
+### Admin editor scroll fix (Feature)
+- Root cause: `fetchAll()` flipped a global `loading` flag that swapped the whole table for a spinner on every in-row mutation (variant add/delete, status toggle, image upload), which reset scroll to the top. Fix in [app/admin/page.jsx](app/admin/page.jsx): `fetchAll(silent)` — the spinner only shows on the initial load; a `refresh()` (silent) is used for all post-mutation re-reads, so the table never unmounts and scroll is preserved. Save and Cancel are the only actions that exit edit mode (`onClose`).
