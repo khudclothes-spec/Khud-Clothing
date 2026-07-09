@@ -274,6 +274,7 @@ Current order:
 
 ## 12. Current Architecture Summary
 
+
 The app is split into three main layers:
 
 1. Presentation layer: pages, shell, cards, and motion.
