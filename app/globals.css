@@ -6091,3 +6091,387 @@ svg {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* =====================================================================
+   Customer account dashboard + order details (Phase 1)
+   ===================================================================== */
+
+.account { padding-top: 40px; padding-bottom: 80px; }
+.account__head { margin-bottom: 28px; }
+.account__sub { color: var(--charcoal); margin-top: 6px; }
+
+.account__layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.account-card {
+  background: var(--cream);
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+.account-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.account-card__title {
+  font-family: var(--font-serif, "Bodoni Moda", serif);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 14px;
+  color: var(--ink);
+}
+.account-card__head .account-card__title { margin: 0; }
+
+.account-note { padding: 9px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+.account-note--ok { background: rgba(109,116,95,0.14); color: var(--olive); }
+.account-note--err { background: rgba(169,71,50,0.12); color: var(--clay); }
+
+.button--sm { padding: 7px 14px; font-size: 12px; }
+
+.form-hint { display: block; margin-top: 5px; font-size: 11px; color: var(--charcoal); }
+
+.student-badge {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.profile-list { display: grid; gap: 12px; margin: 0; }
+.profile-list > div { display: flex; flex-direction: column; gap: 2px; }
+.profile-list dt { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--charcoal); }
+.profile-list dd { margin: 0; font-size: 14px; color: var(--ink); }
+
+.profile-form { display: grid; gap: 12px; }
+.profile-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.profile-form__foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line, #e7dfd1);
+}
+.profile-stat { display: flex; flex-direction: column; gap: 3px; }
+.profile-stat__value { font-size: 20px; font-weight: 800; color: var(--clay); }
+.profile-stat__label { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--charcoal); }
+
+.account-section-title {
+  font-family: var(--font-serif, "Bodoni Moda", serif);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+
+.account-empty {
+  border: 1px dashed var(--line, #e7dfd1);
+  border-radius: 12px;
+  padding: 30px 24px;
+  text-align: center;
+  color: var(--charcoal);
+}
+.account-empty p { margin: 0 0 16px; }
+
+.order-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+.order-card {
+  background: #fff;
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.order-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.order-card__number { font-weight: 700; color: var(--ink); font-size: 14px; }
+.order-card__date { font-size: 12px; color: var(--charcoal); margin-top: 2px; }
+.order-card__items { display: grid; gap: 6px; }
+.order-card__item { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.order-card__item-name { color: var(--ink); }
+.order-card__item-meta { color: var(--charcoal); white-space: nowrap; }
+.order-card__more { font-size: 12px; color: var(--charcoal); }
+.order-card__foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 12px; border-top: 1px solid var(--line, #e7dfd1);
+}
+.order-card__meta { font-size: 12px; color: var(--charcoal); display: flex; gap: 6px; align-items: center; }
+.order-card__total { font-weight: 800; color: var(--clay); }
+.order-card__link {
+  align-self: flex-start;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--ink); text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 2px;
+}
+.order-card__link--muted { color: var(--charcoal); }
+.order-card__pay {
+  align-self: flex-start;
+  display: inline-block;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 9px 16px; border-radius: 8px;
+  background: var(--ink); color: var(--bone); text-decoration: none;
+  transition: background 0.2s ease;
+}
+.order-card__pay:hover { background: var(--clay); }
+
+/* "Upload / replace payment proof" CTA on the order-details payment card. */
+.payment-cta { align-self: flex-start; margin-top: 14px; }
+
+.status-pill {
+  display: inline-block; padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  white-space: nowrap;
+}
+.status-pill--wait { background: rgba(185,145,73,0.18); color: #8a6d2f; }
+.status-pill--go { background: rgba(30,58,138,0.12); color: #1e3a8a; }
+.status-pill--done { background: rgba(109,116,95,0.18); color: var(--olive); }
+.status-pill--cancelled { background: rgba(169,71,50,0.14); color: var(--clay); }
+
+/* ---- Order details page ---- */
+.order-details { padding-top: 32px; padding-bottom: 80px; }
+.order-details__head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin: 10px 0 24px;
+}
+.order-details__grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+
+.order-timeline { margin-bottom: 24px; }
+.timeline {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; gap: 6px; overflow-x: auto;
+}
+.timeline__step {
+  flex: 1 1 0; min-width: 90px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  position: relative;
+}
+.timeline__step::before {
+  content: ""; position: absolute; top: 7px; left: -50%; width: 100%; height: 2px;
+  background: var(--line, #e7dfd1); z-index: 0;
+}
+.timeline__step:first-child::before { display: none; }
+.timeline__dot {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--line, #e7dfd1);
+  z-index: 1; border: 2px solid var(--bone);
+}
+.timeline__label { font-size: 11px; color: var(--charcoal); }
+.timeline__step--done .timeline__dot,
+.timeline__step--active .timeline__dot { background: var(--clay); }
+.timeline__step--done::before { background: var(--clay); }
+.timeline__step--active .timeline__label { color: var(--ink); font-weight: 700; }
+.timeline__step--active .timeline__dot { box-shadow: 0 0 0 4px rgba(169,71,50,0.18); }
+.order-timeline__cancelled {
+  padding: 14px 18px; border-radius: 10px; background: rgba(169,71,50,0.1); color: var(--clay); font-weight: 600;
+}
+
+.order-items-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+.order-items-table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--charcoal); padding: 0 0 8px; border-bottom: 2px solid var(--ink);
+}
+.order-items-table td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line, #e7dfd1); font-size: 13px; color: var(--ink); }
+
+.order-totals { margin-top: 16px; display: grid; gap: 6px; }
+.order-totals__row { display: flex; justify-content: space-between; font-size: 13px; color: var(--charcoal); }
+.order-totals__row span:last-child { color: var(--ink); font-weight: 500; }
+.order-totals__row--discount span:last-child { color: var(--clay); font-weight: 700; }
+.order-totals__row--grand {
+  margin-top: 8px; padding-top: 10px; border-top: 2px solid var(--ink);
+  font-size: 16px; font-weight: 800;
+}
+.order-totals__row--grand span { color: var(--ink); }
+
+.address-block { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--ink); }
+.address-block strong { font-size: 14px; }
+.payment-shot-link {
+  display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 700;
+  color: var(--clay); text-decoration: underline;
+}
+.order-notes { font-size: 13px; color: var(--charcoal); line-height: 1.6; margin: 8px 0 0; }
+
+@media (max-width: 900px) {
+  .account__layout { grid-template-columns: 1fr; }
+  .order-details__grid { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   Dedicated checkout + online payment (Phases 2 & 5)
+   ===================================================================== */
+
+.checkout { padding-top: 32px; padding-bottom: 80px; }
+.checkout__head { margin-bottom: 24px; }
+.checkout-empty { text-align: center; padding: 60px 0; }
+.checkout-empty p { color: var(--charcoal); margin: 10px 0 20px; }
+
+/* Order-complete screen (COD confirmed / bank-transfer proof uploaded). */
+.order-complete {
+  max-width: 500px;
+  margin: 48px auto;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+}
+.order-complete__check {
+  width: 60px; height: 60px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--olive, #6d745f); color: #fff;
+  font-size: 30px; line-height: 1; margin-bottom: 18px;
+}
+.order-complete__title {
+  font-family: "Bodoni Moda", Georgia, serif;
+  font-size: 32px; line-height: 1.15; color: var(--ink); margin: 0;
+}
+.order-complete__ref {
+  margin: 10px 0 0; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.6px; text-transform: uppercase; color: var(--charcoal);
+}
+.order-complete__msg { margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: var(--charcoal); }
+.order-complete__ask { margin: 22px 0 0; font-size: 15.5px; font-weight: 600; color: var(--ink); }
+.order-complete__actions {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px;
+}
+
+.checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 28px; align-items: start; }
+.checkout-forms { display: grid; gap: 18px; }
+
+.checkout-section {
+  background: var(--cream);
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.checkout-section__title {
+  font-family: var(--font-serif, "Bodoni Moda", serif);
+  font-size: 18px; font-weight: 600; margin: 0 0 14px; color: var(--ink);
+}
+.checkout-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkout-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.checkout-billing { margin-top: 14px; display: grid; gap: 12px; }
+
+.ship-method {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border: 1px solid var(--ink); border-radius: 8px; background: #fff;
+}
+.ship-method__label { font-size: 14px; color: var(--ink); font-weight: 600; }
+.ship-method__price { font-weight: 700; color: var(--clay); }
+
+.checkout-hint { font-size: 12px; color: var(--charcoal); margin: 8px 0 0; }
+.checkout-hint--center { text-align: center; }
+
+.checkout-summary-panel {
+  position: sticky; top: 96px;
+  background: var(--cream);
+  border: 1px solid var(--line, #e7dfd1);
+  border-radius: 12px;
+  padding: 22px 24px;
+}
+.checkout-items { display: grid; gap: 12px; margin-bottom: 16px; }
+.checkout-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.checkout-item__info { display: flex; flex-direction: column; gap: 2px; }
+.checkout-item__name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.checkout-item__meta { font-size: 12px; color: var(--charcoal); }
+.checkout-item__price { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+
+.checkout-promo { padding: 14px 0; border-top: 1px solid var(--line, #e7dfd1); border-bottom: 1px solid var(--line, #e7dfd1); margin-bottom: 14px; }
+.checkout-promo__row { display: flex; gap: 8px; }
+.checkout-promo__row .form-input { flex: 1; }
+.checkout-promo__applied { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--ink); }
+.checkout-promo__remove { background: none; border: none; color: var(--clay); font-size: 12px; text-decoration: underline; cursor: pointer; }
+.checkout-promo__error { margin-top: 8px; font-size: 12px; color: var(--clay); }
+
+.checkout-totals { display: grid; gap: 7px; margin-bottom: 18px; }
+.checkout-total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--charcoal); }
+.checkout-total-row span:last-child { color: var(--ink); font-weight: 500; }
+.checkout-total-row--discount span:last-child { color: var(--clay); font-weight: 700; }
+.checkout-total-row--grand {
+  margin-top: 6px; padding-top: 10px; border-top: 2px solid var(--ink);
+  font-size: 16px; font-weight: 800;
+}
+.checkout-total-row--grand span { color: var(--ink); }
+.checkout-place { width: 100%; }
+
+/* Online payment step */
+.pay-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.bank-details { display: grid; gap: 12px; margin: 0 0 16px; }
+.bank-details > div { display: flex; flex-direction: column; gap: 2px; }
+.bank-details dt { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--charcoal); }
+.bank-details dd { margin: 0; font-size: 15px; color: var(--ink); font-weight: 600; }
+.bank-amount {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-radius: 10px; background: var(--ink); color: var(--bone); margin-bottom: 12px;
+}
+.bank-amount strong { font-size: 18px; }
+
+.payment-upload { display: block; }
+.file-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 26px 18px; border: 1.5px dashed var(--line, #e7dfd1); border-radius: 10px;
+  background: #fff; cursor: pointer; text-align: center;
+}
+.file-drop:hover { border-color: var(--ink); }
+.file-drop__label { font-size: 14px; font-weight: 600; color: var(--ink); word-break: break-all; }
+.file-drop__hint { font-size: 12px; color: var(--charcoal); }
+
+@media (max-width: 900px) {
+  .checkout-layout { grid-template-columns: 1fr; }
+  .checkout-summary-panel { position: static; }
+  .pay-page-grid { grid-template-columns: 1fr; }
+}
+
+/* Admin payment verification panel (Phase 6) */
+.admin-payment {
+  margin-top: 8px; padding: 14px 16px;
+  border: 1px solid var(--line, #e7dfd1); border-radius: 10px; background: var(--cream);
+}
+.admin-payment__row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.admin-payment__shot { display: inline-block; margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--clay); text-decoration: underline; }
+.admin-payment__actions { display: flex; gap: 10px; margin-top: 10px; }
+
+/* Admin order date/time cell — keep the timestamp compact on one line. */
+.order-cell-datetime { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Feature 7: manual "notify the customer" prompt after a status/payment change. */
+.admin-notify {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 60; max-width: min(560px, calc(100vw - 32px));
+  padding: 14px 18px; border-radius: 12px;
+  background: var(--ink, #11100e); color: var(--bone, #f4efe6);
+  box-shadow: 0 12px 40px rgba(17, 16, 14, 0.28);
+  animation: adminNotifyIn 0.18s ease-out;
+}
+@keyframes adminNotifyIn { from { opacity: 0; } to { opacity: 1; } }
+.admin-notify__body { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.admin-notify__msg { font-size: 13.5px; line-height: 1.5; flex: 1 1 240px; }
+.admin-notify__msg strong { color: #fff; }
+.admin-notify__actions { display: flex; gap: 10px; flex-shrink: 0; }
+@media (max-width: 560px) {
+  .admin-notify { left: 16px; right: 16px; transform: none; max-width: none; }
+}
+
+/* Student verification (Phase 4) */
+.student-verify {
+  margin-bottom: 14px; padding: 14px 16px;
+  border: 1px dashed var(--line, #e7dfd1); border-radius: 10px; background: #fff;
+}
+.student-verify__title { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--ink); margin-bottom: 4px; }
+.student-verify__row { display: flex; gap: 8px; }
+.student-verify__row .form-input { flex: 1; }
+.domain-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.domain-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 8px 6px 12px; border: 1px solid var(--line, #e7dfd1); border-radius: 20px; background: #fff; font-size: 13px;
+}

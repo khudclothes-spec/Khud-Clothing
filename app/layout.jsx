@@ -1,36 +1,50 @@
 import "./globals.css";
 import { SiteShell } from "@/components/SiteShell";
 import { SessionMonitor } from "@/components/SessionMonitor";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, organizationSchema, websiteSchema } from "@/lib/seo";
 
 export const metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Khud",
+    default: "Khud — Wear Your Imprint",
     template: "%s — Khud"
   },
-  description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
-  keywords: ["Khud", "custom clothing", "oversized tees", "Pakistan fashion", "custom print", "streetwear"],
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ["Khud", "custom clothing", "oversized tees", "hoodies", "Pakistan fashion", "custom print studio", "streetwear", "personalised apparel"],
   authors: [{ name: "Khud Studio" }],
   creator: "Khud",
+  publisher: "Khud",
+  manifest: "/manifest.webmanifest",
+  alternates: { canonical: "/" },
   icons: {
-    icon: [
-      { url: "/images/logo-white-writing.png", type: "image/png" }
-    ],
-    apple: [
-      { url: "/images/logo-white-writing.png" }
-    ]
+    apple: [{ url: "/images/logo-white-writing.png" }]
   },
   openGraph: {
     title: "Khud — Wear Your Imprint",
-    description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
-    siteName: "Khud",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: SITE_NAME,
     locale: "en_US",
     type: "website"
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Khud — Wear Your Imprint",
-    description: "Premium ready-made clothing and a custom-print studio."
+    description: SITE_DESCRIPTION
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 }
   }
+};
+
+export const viewport = {
+  themeColor: "#11100E",
+  width: "device-width",
+  initialScale: 1
 };
 
 export default function RootLayout({ children }) {
@@ -45,6 +59,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* Site-wide structured data: who we are + the site itself. */}
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={websiteSchema()} />
         <SessionMonitor />
         <SiteShell>{children}</SiteShell>
       </body>

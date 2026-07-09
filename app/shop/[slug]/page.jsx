@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
 import { CategoryShop } from "@/components/CategoryShop";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbSchema } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -23,12 +25,18 @@ export async function generateMetadata({ params }) {
       .eq("is_active", true)
       .maybeSingle();
     if (cat) {
-      return { title: `${cat.name} — Khud`, description: cat.description || `Shop ${cat.name} at Khud.` };
+      const description = cat.description || `Shop ${cat.name} at Khud.`;
+      return {
+        title: `${cat.name} — Khud`,
+        description,
+        alternates: { canonical: `/shop/${slug}` },
+        openGraph: { url: `/shop/${slug}`, title: `${cat.name} — Khud`, description }
+      };
     }
   } catch {
     // ignore
   }
-  return { title: "Shop — Khud" };
+  return { title: "Shop — Khud", alternates: { canonical: `/shop/${slug}` } };
 }
 
 export default async function CategoryPage({ params }) {
@@ -66,6 +74,13 @@ export default async function CategoryPage({ params }) {
 
   return (
     <main className="container">
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Shop", path: "/shop" },
+          { name: category.name, path: `/shop/${category.slug}` }
+        ])}
+      />
       <section className="page-title" data-reveal>
         <div className="eyebrow">
           <Link href="/shop" className="crumb-link">Shop</Link> / {category.name}

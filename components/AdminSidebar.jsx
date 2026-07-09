@@ -48,6 +48,8 @@ export function AdminSidebar({ displayName }) {
           <Link href="/admin" className="admin-nav-link">Products</Link>
           <Link href="/admin/categories" className="admin-nav-link">Categories</Link>
           <Link href="/admin/orders" className="admin-nav-link">Orders</Link>
+          <Link href="/admin/promos" className="admin-nav-link">Promo Codes</Link>
+          <Link href="/admin/students" className="admin-nav-link">Student Verification</Link>
           <Link href="/admin/storefront" className="admin-nav-link">Storefront</Link>
 
           <div className="admin-nav-group">Customization</div>

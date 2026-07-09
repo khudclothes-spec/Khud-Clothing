@@ -79,28 +79,22 @@ export function itemsTable(items) {
   </table>`;
 }
 
-// Totals block (subtotal / discount / shipping / grand total).
-export function totals({ subtotal, shippingCost, total, discount = 0 }) {
+// Totals block (subtotal / promo / online discount / shipping / total).
+export function totals({ subtotal, shippingCost, total, discount = 0, promoDiscount = 0, promoCode = "" }) {
   const shipLabel = Number(shippingCost) > 0 ? money(shippingCost) : "Free";
-  const discountRow =
-    Number(discount) > 0
-      ? `
+  const line = (label, value, accent = false) => `
     <tr>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Discount</td>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.clay};text-align:right;">−${money(discount)}</td>
-    </tr>`
-      : "";
+      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">${escapeHtml(label)}</td>
+      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${accent ? c.clay : c.ink};text-align:right;">${value}</td>
+    </tr>`;
+  const promoRow = Number(promoDiscount) > 0 ? line(`Promo${promoCode ? ` (${promoCode})` : ""}`, `−${money(promoDiscount)}`, true) : "";
+  const discountRow = Number(discount) > 0 ? line("Online discount", `−${money(discount)}`, true) : "";
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin-top:12px;">
-    <tr>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Subtotal</td>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.ink};text-align:right;">${money(subtotal)}</td>
-    </tr>
+    ${line("Subtotal", money(subtotal))}
+    ${promoRow}
     ${discountRow}
-    <tr>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.charcoal};">Shipping</td>
-      <td style="padding:4px 0;font-family:${brand.fontStack};font-size:13px;color:${c.ink};text-align:right;">${shipLabel}</td>
-    </tr>
+    ${line("Shipping", shipLabel)}
     <tr>
       <td style="padding:10px 0 0;border-top:2px solid ${c.ink};font-family:${brand.fontStack};font-size:15px;font-weight:700;color:${c.ink};">Total</td>
       <td style="padding:10px 0 0;border-top:2px solid ${c.ink};font-family:${brand.fontStack};font-size:15px;font-weight:700;color:${c.clay};text-align:right;">${money(total)}</td>

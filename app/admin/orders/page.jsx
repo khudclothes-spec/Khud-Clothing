@@ -3,12 +3,16 @@
 import { Fragment, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { ChevronDown } from "@/components/Icons";
+import { ORDER_STATUS, statusLabel } from "@/lib/orders";
 
-const STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+const STATUSES = Object.keys(ORDER_STATUS);
 
-function formatDate(iso) {
+// Show both date AND time (customer's local timezone), everywhere orders appear.
+function formatDateTime(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
 }
 
 function money(n) {
@@ -21,14 +25,39 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [filter, setFilter] = useState("all");
+  // Feature 7: after any admin change, offer to notify the customer. Emails are
+  // never sent automatically. { orderId, orderNumber, label, sending, result }
+  const [notify, setNotify] = useState(null);
 
   useEffect(() => { fetchAll(); }, []);
+
+  function askNotify(order, label) {
+    setNotify({ orderId: order.id, orderNumber: order.order_number, label, sending: false, result: null });
+  }
+
+  async function sendNotify() {
+    if (!notify) return;
+    setNotify((n) => ({ ...n, sending: true }));
+    try {
+      const res = await fetch("/api/orders/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: notify.orderId })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setNotify((n) => ({ ...n, sending: false, result: data.emailed ? "sent" : "none" }));
+    } catch (err) {
+      console.error("[admin] notify failed", err);
+      setNotify((n) => ({ ...n, sending: false, result: "error" }));
+    }
+  }
 
   async function fetchAll() {
     setLoading(true);
     const { data } = await supabase
       .from("orders")
-      .select("id, order_number, status, subtotal, shipping_cost, discount_amount, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, product_id, products(name))")
+      .select("id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, promo_code, tax, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, product_id, products(name)), payment_verifications(payment_status, payment_screenshot_path, admin_notes, uploaded_at, verified_at)")
       .order("created_at", { ascending: false });
     setOrders(data ?? []);
     setLoading(false);
@@ -37,8 +66,9 @@ export default function AdminOrdersPage() {
   async function updateStatus(orderId, status) {
     const prevOrders = orders;
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
-    // Route through the API so the status is saved AND the customer is emailed
-    // about the change, all server-side. Roll back the UI if it fails.
+    // Route through the API so the status is saved server-side. The customer is
+    // NOT emailed automatically — after a successful save we ask the admin
+    // whether to notify (Feature 7). Roll back the UI if the save fails.
     try {
       const res = await fetch("/api/orders/status", {
         method: "POST",
@@ -46,6 +76,8 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ orderId, status })
       });
       if (!res.ok) throw new Error(await res.text());
+      const order = prevOrders.find((o) => o.id === orderId);
+      if (order) askNotify(order, statusLabel(status));
     } catch (err) {
       console.error("[admin] status update failed", err);
       setOrders(prevOrders);
@@ -64,7 +96,7 @@ export default function AdminOrdersPage() {
         <div className="orders-filter">
           <select className="form-input form-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="all">All statuses</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
           </select>
         </div>
       </div>
@@ -113,10 +145,10 @@ export default function AdminOrdersPage() {
                           value={o.status}
                           onChange={(e) => updateStatus(o.id, e.target.value)}
                         >
-                          {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+                          {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
                         </select>
                       </td>
-                      <td>{formatDate(o.created_at)}</td>
+                      <td className="order-cell-datetime">{formatDateTime(o.created_at)}</td>
                     </tr>
 
                     {isOpen && (
@@ -138,14 +170,21 @@ export default function AdminOrdersPage() {
                               <div>
                                 <div className="order-detail__label">Totals</div>
                                 <div className="order-detail__value">Subtotal: {money(o.subtotal)}</div>
+                                {Number(o.promo_discount) > 0 && (
+                                  <div className="order-detail__value">Promo{o.promo_code ? ` (${o.promo_code})` : ""}: −{money(o.promo_discount)}</div>
+                                )}
                                 {Number(o.discount_amount) > 0 && (
-                                  <div className="order-detail__value">Discount: −{money(o.discount_amount)}</div>
+                                  <div className="order-detail__value">Online discount: −{money(o.discount_amount)}</div>
                                 )}
                                 <div className="order-detail__value">Shipping: {Number(o.shipping_cost) > 0 ? money(o.shipping_cost) : "Free"}</div>
                                 <div className="order-detail__value order-detail__value--strong">Total: {money(o.total_amount)}</div>
-                                <div className="order-detail__value order-detail__value--muted">Payment: {o.payment_method === "online" ? "Online Payment" : "Cash on Delivery"}</div>
+                                <div className="order-detail__value order-detail__value--muted">Payment: {o.payment_method === "online" ? "Bank Transfer" : "Cash on Delivery"}</div>
                               </div>
                             </div>
+
+                            {o.payment_method === "online" && (
+                              <AdminPaymentPanel order={o} supabase={supabase} onChanged={fetchAll} onActed={askNotify} />
+                            )}
 
                             {o.notes && (
                               <div className="order-detail__notes">
@@ -182,6 +221,134 @@ export default function AdminOrdersPage() {
           </table>
         </div>
       )}
+
+      {/* Feature 7: manual customer notification after a status/payment change. */}
+      {notify && (
+        <div className="admin-notify" role="status" aria-live="polite">
+          {notify.result ? (
+            <div className="admin-notify__body">
+              <span className="admin-notify__msg">
+                {notify.result === "sent"
+                  ? `Email sent to the customer for ${notify.orderNumber}.`
+                  : notify.result === "none"
+                  ? `No email sent — the customer may have no email on file, or email delivery isn't configured yet.`
+                  : `Couldn't send the email. Please try again.`}
+              </span>
+              <button type="button" className="button button--outline button--sm" onClick={() => setNotify(null)}>Close</button>
+            </div>
+          ) : (
+            <div className="admin-notify__body">
+              <span className="admin-notify__msg">
+                <strong>Status updated.</strong> {notify.orderNumber} → {notify.label}. Notify the customer about this change?
+              </span>
+              <div className="admin-notify__actions">
+                <button type="button" className="button button--dark button--sm" disabled={notify.sending} onClick={sendNotify}>
+                  {notify.sending ? "Sending…" : "Send Email"}
+                </button>
+                <button type="button" className="button button--outline button--sm" disabled={notify.sending} onClick={() => setNotify(null)}>
+                  Skip
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── Admin payment verification panel ───────────────────────── */
+
+function AdminPaymentPanel({ order, supabase, onChanged, onActed }) {
+  const pvRaw = order.payment_verifications;
+  const pv = Array.isArray(pvRaw) ? pvRaw[0] : pvRaw;
+  const [notes, setNotes] = useState(pv?.admin_notes ?? "");
+  const [signedUrl, setSignedUrl] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!pv?.payment_screenshot_path) { setSignedUrl(null); return; }
+      const { data } = await supabase.storage
+        .from("payment-screenshots")
+        .createSignedUrl(pv.payment_screenshot_path, 60 * 30);
+      if (active) setSignedUrl(data?.signedUrl ?? null);
+    })();
+    return () => { active = false; };
+  }, [pv?.payment_screenshot_path, supabase]);
+
+  async function act(action) {
+    setBusy(action);
+    setError("");
+    try {
+      const res = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, action, notes })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      // Offer to notify the customer (approve → "Confirmed", reject → "Payment
+      // rejected"). No email was sent by the API — the admin decides here.
+      onActed?.(order, action === "approve" ? "Confirmed" : "Payment rejected");
+      await onChanged();
+    } catch (err) {
+      setError("Could not update the payment. Please try again.");
+      console.error("[admin] payment verify failed", err);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  const status = pv?.payment_status ?? "pending";
+  const statusText = {
+    pending: "Awaiting payment",
+    submitted: "Awaiting verification",
+    approved: "Approved",
+    rejected: "Rejected"
+  }[status] || status;
+
+  return (
+    <div className="admin-payment">
+      <div className="order-detail__label" style={{ marginTop: 16 }}>Payment verification</div>
+      <div className="admin-payment__row">
+        <span className={`status-pill status-pill--${status === "approved" ? "go" : status === "rejected" ? "cancelled" : "wait"}`}>
+          {statusText}
+        </span>
+        {pv?.uploaded_at && <span className="admin-muted">Uploaded {formatDateTime(pv.uploaded_at)}</span>}
+      </div>
+
+      {pv?.payment_screenshot_path ? (
+        signedUrl ? (
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="admin-payment__shot">
+            View payment screenshot
+          </a>
+        ) : (
+          <span className="admin-muted">Loading screenshot…</span>
+        )
+      ) : (
+        <p className="admin-muted" style={{ margin: "6px 0 0" }}>Customer hasn't uploaded a receipt yet.</p>
+      )}
+
+      {error && <div className="admin-error" style={{ marginTop: 10 }}>{error}</div>}
+
+      <textarea
+        className="form-input form-textarea"
+        rows={2}
+        placeholder="Notes for the customer (optional)"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        style={{ marginTop: 10 }}
+      />
+      <div className="admin-payment__actions">
+        <button type="button" className="button button--dark button--sm" disabled={!!busy || status === "approved"} onClick={() => act("approve")}>
+          {busy === "approve" ? "Approving…" : "Approve payment"}
+        </button>
+        <button type="button" className="button button--outline button--sm" disabled={!!busy} onClick={() => act("reject")}>
+          {busy === "reject" ? "Rejecting…" : "Reject"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { ArrowRight, Bag, Close, Menu, ChevronDown, User, LogOut, Dashboard } fr
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { navLinks, formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
-import { PAYMENT_METHODS, orderTotals, itemsToFreeShipping, FREE_SHIPPING_MIN_ITEMS, SHIPPING_FLAT } from "@/lib/pricing";
+import { itemsToFreeShipping, FREE_SHIPPING_MIN_ITEMS } from "@/lib/pricing";
 
 const blackLogo = "/images/logo-black-writing.png";
 const whiteLogo = "/images/logo-white-writing.png";
@@ -365,6 +365,16 @@ function UserMenu({ displayName, isAdmin, onLogout, onNavigate }) {
               <div className="user-dropdown__name">{displayName}</div>
             </div>
 
+            <button
+              type="button"
+              className="user-dropdown__item"
+              role="menuitem"
+              onClick={() => { setOpen(false); onNavigate("/account"); }}
+            >
+              <User size={15} />
+              My Account
+            </button>
+
             {isAdmin && (
               <button
                 type="button"
@@ -471,175 +481,20 @@ function FooterColumn({ title, links, handleLink }) {
 }
 
 function CartDrawer({ navigate, authUser }) {
-  const { cart, cartCount, subtotal, subtotalNumber, cartOpen, closeCart, changeQty, removeItem, placeOrder } = useCart();
-  const [step, setStep] = useState("bag"); // "bag" | "checkout" | "done"
-  const [shipping, setShipping] = useState({
-    full_name: "", phone: "", address_line1: "", address_line2: "", city: "", state: "", postal_code: ""
-  });
-  const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [placing, setPlacing] = useState(false);
-  const [orderError, setOrderError] = useState("");
-  const [orderId, setOrderId] = useState(null);
-
-  // Live order breakdown — mirrors the process_checkout RPC exactly.
-  const totals = orderTotals({ subtotal: subtotalNumber, itemCount: cartCount, paymentMethod });
+  const { cart, cartCount, subtotal, cartOpen, closeCart, changeQty, removeItem } = useCart();
   const toFree = itemsToFreeShipping(cartCount);
-
-  // Reset to bag view whenever drawer is opened
-  useEffect(() => {
-    if (cartOpen) {
-      setStep("bag");
-      setOrderError("");
-    }
-  }, [cartOpen]);
 
   if (!cartOpen) return null;
 
-  async function handleCheckout(e) {
-    e.preventDefault();
-    setPlacing(true);
-    setOrderError("");
-    try {
-      const result = await placeOrder({ ...shipping, payment_method: paymentMethod });
-      setOrderId(result.orderId);
-      setStep("done");
-    } catch (err) {
-      setOrderError(err.message.includes("Not signed in")
-        ? "Please sign in before placing an order."
-        : err.message);
-    } finally {
-      setPlacing(false);
-    }
+  // The bag is intentionally bag-only now — the full contact / shipping /
+  // billing / payment / promo flow lives on the dedicated /checkout page. That
+  // page auth-gates itself (Cart → Checkout → Login → back to Checkout) and the
+  // cart persists across the round trip (see CartProvider localStorage).
+  function goToCheckout() {
+    closeCart();
+    navigate("/checkout");
   }
 
-  function updateShipping(field, value) {
-    setShipping((prev) => ({ ...prev, [field]: value }));
-  }
-
-  if (step === "done") {
-    return (
-      <div className="cart-layer">
-        <button type="button" className="overlay" onClick={closeCart} aria-label="Close cart" />
-        <aside className="cart-drawer" aria-label="Order confirmation">
-          <div className="cart-head">
-            <div className="cart-title"><strong>Order Placed</strong></div>
-            <button type="button" className="icon-button" onClick={closeCart}><Close /></button>
-          </div>
-          <div className="cart-empty">
-            <div className="cart-empty__title" style={{ color: "var(--olive)" }}>Your order is confirmed.</div>
-            <p>We'll process it shortly and reach out via the contact details you provided.</p>
-            {orderId && <p style={{ fontSize: 12, color: "var(--charcoal)" }}>Reference: {orderId.slice(0, 8).toUpperCase()}</p>}
-            <button type="button" className="button button--dark" onClick={() => { closeCart(); navigate("/shop"); }}>
-              Continue Shopping
-            </button>
-          </div>
-        </aside>
-      </div>
-    );
-  }
-
-  if (step === "checkout") {
-    return (
-      <div className="cart-layer">
-        <button type="button" className="overlay" onClick={closeCart} aria-label="Close cart" />
-        <aside className="cart-drawer" aria-label="Checkout">
-          <div className="cart-head">
-            <div className="cart-title">
-              <button type="button" className="plain-icon" onClick={() => setStep("bag")} style={{ marginRight: 8 }}>←</button>
-              <strong>Shipping Details</strong>
-            </div>
-            <button type="button" className="icon-button" onClick={closeCart}><Close /></button>
-          </div>
-          <form onSubmit={handleCheckout} className="checkout-form">
-            {orderError && <div className="auth-error" style={{ margin: "0 0 12px" }}>{orderError}{" "}
-              {orderError.includes("sign in") && <Link href="/login" onClick={closeCart} style={{ textDecoration: "underline" }}>Sign in</Link>}
-            </div>}
-            <div className="form-group">
-              <label className="form-label">Full Name *</label>
-              <input className="form-input" required value={shipping.full_name} onChange={(e) => updateShipping("full_name", e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Phone *</label>
-              <input className="form-input" required value={shipping.phone} onChange={(e) => updateShipping("phone", e.target.value)} placeholder="+92 300 0000000" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Address *</label>
-              <input className="form-input" required value={shipping.address_line1} onChange={(e) => updateShipping("address_line1", e.target.value)} placeholder="Street address" />
-            </div>
-            <div className="form-group">
-              <input className="form-input" value={shipping.address_line2} onChange={(e) => updateShipping("address_line2", e.target.value)} placeholder="Apt / floor (optional)" />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div className="form-group">
-                <label className="form-label">City *</label>
-                <input className="form-input" required value={shipping.city} onChange={(e) => updateShipping("city", e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Province *</label>
-                <input className="form-input" required value={shipping.state} onChange={(e) => updateShipping("state", e.target.value)} placeholder="Sindh" />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Postal Code *</label>
-              <input className="form-input" required value={shipping.postal_code} onChange={(e) => updateShipping("postal_code", e.target.value)} />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Payment Method *</label>
-              <div className="pay-methods">
-                {PAYMENT_METHODS.map((m) => (
-                  <button
-                    type="button"
-                    key={m.value}
-                    className={`pay-method ${paymentMethod === m.value ? "is-selected" : ""}`}
-                    onClick={() => setPaymentMethod(m.value)}
-                    aria-pressed={paymentMethod === m.value}
-                  >
-                    <span className="pay-method__radio" aria-hidden="true" />
-                    <span className="pay-method__text">
-                      <span className="pay-method__label">{m.label}</span>
-                      <span className="pay-method__note">{m.note}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="cart-summary checkout-summary" style={{ marginTop: "auto", paddingTop: 16 }}>
-              <div className="summary-row">
-                <span>Subtotal</span>
-                <span>{formatPrice(totals.subtotal)}</span>
-              </div>
-              {totals.onlineDiscount > 0 && (
-                <div className="summary-row summary-row--discount">
-                  <span>Discount (5%)</span>
-                  <span>−{formatPrice(totals.onlineDiscount)}</span>
-                </div>
-              )}
-              <div className="summary-row">
-                <span>Shipping</span>
-                <span>{totals.freeShipping ? "Free" : formatPrice(totals.shipping)}</span>
-              </div>
-              <div className="subtotal summary-row--total">
-                <span>Total</span>
-                <span>{formatPrice(totals.total)}</span>
-              </div>
-              <div className="checkout-note">
-                {totals.freeShipping
-                  ? "Free shipping applied · Nationwide"
-                  : `Rs ${SHIPPING_FLAT} shipping · Free on ${FREE_SHIPPING_MIN_ITEMS}+ items`}
-              </div>
-              <button type="submit" className="button button--dark" style={{ width: "100%" }} disabled={placing}>
-                {placing ? "Placing order…" : `Place Order · ${formatPrice(totals.total)}`}
-              </button>
-            </div>
-          </form>
-        </aside>
-      </div>
-    );
-  }
-
-  // step === "bag"
   return (
     <div className="cart-layer">
       <button type="button" className="overlay" onClick={closeCart} aria-label="Close cart" />
@@ -721,16 +576,13 @@ function CartDrawer({ navigate, authUser }) {
                 type="button"
                 className="button button--dark"
                 style={{ width: "100%" }}
-                onClick={() => { setOrderError(""); setStep("checkout"); }}
+                onClick={goToCheckout}
               >
                 Checkout
               </button>
               {!authUser && (
                 <div className="demo-note">
-                  <Link href="/login" onClick={closeCart} style={{ color: "var(--clay)", textDecoration: "underline" }}>
-                    Sign in
-                  </Link>
-                  {" "}required to place an order.
+                  You'll sign in at checkout to place your order.
                 </div>
               )}
             </div>

@@ -301,8 +301,8 @@ Two channels: **Supabase Auth** sends signup-verification + password-reset (we b
 
 - **Never send from the client.** The client posts an order id to a route; content + delivery are server-side.
 - **Service:** [lib/email/](lib/email/) — `config.js` (brand + owner emails + env), `client.js` (Resend HTTP transport via `fetch`; no-ops with a warning if `RESEND_API_KEY` unset), `orders.js` (order model + senders). **Templates:** [emails/](emails/) are modular HTML-string builders (`layout.js`, `components.js`, three templates) — zero email-framework deps.
-- **Order confirmation:** [components/CartContext.jsx](components/CartContext.jsx) `placeOrder` fires `POST /api/orders/confirm` (fire-and-forget) → [app/api/orders/confirm/route.js](app/api/orders/confirm/route.js) authenticates + verifies ownership + idempotent (`orders.confirmation_sent_at`) → customer email + 4 owner notifications (`OWNER_EMAIL_1..4`).
-- **Status updates:** [app/admin/orders/page.jsx](app/admin/orders/page.jsx) routes status changes through `POST /api/orders/status` (admin-only) which updates `orders.status` AND emails the customer (`STATUS_COPY` in [emails/orderStatusUpdate.js](emails/orderStatusUpdate.js) covers confirmed/processing/shipped/delivered/cancelled).
+- **Order confirmation (COD only, automatic):** [components/CartContext.jsx](components/CartContext.jsx) `placeOrder` fires `POST /api/orders/confirm` **only when the created order is already `confirmed`** (COD). [app/api/orders/confirm/route.js](app/api/orders/confirm/route.js) authenticates + verifies ownership + **gates on `status === 'confirmed'`** + idempotent (`orders.confirmation_sent_at`) → customer email + 4 owner notifications (`OWNER_EMAIL_1..4`). Bank-transfer orders start `pending_payment` and are **never** confirmed here.
+- **Status updates are now MANUAL (Feature 7).** Admin status changes go through `POST /api/orders/status` (admin-only) which **only saves `orders.status` — it does not email**. `POST /api/payments/verify` (approve/reject) likewise saves only. After any change the admin dashboard shows a "Notify the customer? [Send Email] [Skip]" toast; **Send Email** calls `POST /api/orders/notify` ([app/api/orders/notify/route.js](app/api/orders/notify/route.js)), which picks the right reusable template from the order's current state — a lifecycle status (`STATUS_COPY` in [emails/orderStatusUpdate.js](emails/orderStatusUpdate.js) covers confirmed/processing/printing/packed/shipped/delivered/cancelled) or, for a rejected transfer, the payment-rejected email. So a bank-transfer order's "Order Confirmed" email is sent when the admin approves the payment (→`confirmed`) and presses Send Email.
 - **Verification:** [app/login/LoginForm.jsx](app/login/LoginForm.jsx) signup → `/verify-email` ([app/verify-email/page.jsx](app/verify-email/page.jsx)) which polls + `onAuthStateChange` + resend. Unverified users are blocked from checkout (client guard + route 403 + the RPC needs `auth.uid()`).
 - The `/customize` studio uses Fabric.js (client-only). Never import `fabric` at module top level — it touches the DOM and breaks SSR. Load it inside an effect (`await import("fabric")`), as [components/customize/StudioCanvas.jsx](components/customize/StudioCanvas.jsx) does.
 
@@ -399,3 +399,73 @@ UI shows. Never hardcode a price rule in a component; import from `lib/pricing`.
 
 ### Admin editor scroll fix (Feature)
 - Root cause: `fetchAll()` flipped a global `loading` flag that swapped the whole table for a spinner on every in-row mutation (variant add/delete, status toggle, image upload), which reset scroll to the top. Fix in [app/admin/page.jsx](app/admin/page.jsx): `fetchAll(silent)` — the spinner only shows on the initial load; a `refresh()` (silent) is used for all post-mutation re-reads, so the table never unmounts and scroll is preserved. Save and Cancel are the only actions that exit edit mode (`onClose`).
+
+## 16. Accounts, checkout, promos, payments & student verification (DONE)
+
+Full multi-phase platform build. **Migrations live in [supabase/scripts/](supabase/scripts/) (021–026)** — run AFTER `scripts/` 001–020, in numeric order (all additive + idempotent). 025 supersedes the `scripts/020` checkout RPC.
+
+### Migrations (run 021 → 026)
+- **021** `profiles` address + student columns; `student_email_domains`; `student_verification_tokens`; `verify_student_token()`; `protect_profile_columns()` trigger blocking client writes to `role`/`student_*`/`total_*`.
+- **022** `promo_codes` (`percentage`|`fixed`|`student`) + `validate_promo_code(code, subtotal)` (codes never publicly listable; usage incremented at checkout).
+- **023** order pricing/snapshot columns (`tax`, `promo_code`, `promo_discount`, billing + shipping snapshot), widened `orders.status` lifecycle, `payment_verifications` audit table, private `payment-screenshots` bucket + policies.
+- **024** `categories` custom base + half/full-sleeve prices & enable flags.
+- **025** `process_checkout` **v3** — per-product discount, promo apply + increment, online 5% (post-promo), item-based shipping, billing/shipping snapshot, status by payment (`cod`→`confirmed`, `online`→`pending_payment` + a `payment_verifications` row).
+- **026** `submit_payment_proof(order_id, path)` definer (customer records screenshot + advances order to `pending_verification`, since customers can't UPDATE orders).
+
+### Money (single source of truth)
+[lib/pricing.js](lib/pricing.js): `orderTotals({subtotal,itemCount,paymentMethod,promoDiscount})` mirrors the RPC exactly (subtotal → promo → online 5% → +shipping; **no tax**). `PAYMENT_METHODS` = COD + Bank Transfer (`online`). The `orders.tax` column stays but is always 0. [lib/orders.js](lib/orders.js) owns the status lifecycle (`ORDER_STATUS`, `ORDER_TIMELINE`/`_COD`, `statusLabel/Tone`, `timelineFor`).
+
+### Customer flow
+- **Dashboard** [app/account/page.jsx](app/account/page.jsx) + [components/account/AccountDashboard.jsx](components/account/AccountDashboard.jsx): editable profile, Current/Previous orders, total orders + spent, and [StudentVerify](components/account/StudentVerify.jsx) when unverified. **Order details** [app/account/orders/[id]/page.jsx](app/account/orders/%5Bid%5D/page.jsx): timeline, prices, snapshots, signed-URL screenshot.
+- **Checkout** [app/checkout/page.jsx](app/checkout/page.jsx) (auth-gated → `/login?redirect=/checkout`) + [components/checkout/CheckoutClient.jsx](components/checkout/CheckoutClient.jsx): contact/shipping/billing/shipping-method/payment/promo/summary, profile autofill + **save-back**. Cart persists via localStorage in [CartContext](components/CartContext.jsx) (so the login round-trip never loses it); the cart drawer is now bag-only and routes to `/checkout`.
+- **Online payment** [app/checkout/payment/[id]/page.jsx](app/checkout/payment/%5Bid%5D/page.jsx) + [PaymentUpload](components/checkout/PaymentUpload.jsx): bank details ([lib/data.js](lib/data.js) `bankTransferDetails` — PLACEHOLDERS), screenshot/PDF upload → `submit_payment_proof` → `pending_verification`.
+
+### Admin
+- **Payment verification** on [app/admin/orders/page.jsx](app/admin/orders/page.jsx) (`AdminPaymentPanel`): view screenshot, approve/reject + notes via [app/api/payments/verify/route.js](app/api/payments/verify/route.js) (approve→`confirmed`, reject→`pending_payment`). Status dropdown now uses the full lifecycle ([app/api/orders/status/route.js](app/api/orders/status/route.js) `ALLOWED` widened).
+- **Promo codes** [app/admin/promos/page.jsx](app/admin/promos/page.jsx) — CRUD + enable toggle.
+- **Student verification** [app/admin/students/page.jsx](app/admin/students/page.jsx) — approved domains CRUD + verified list + revoke ([app/api/student/revoke/route.js](app/api/student/revoke/route.js)).
+- **Sleeve pricing** editor added to [app/admin/customization/page.jsx](app/admin/customization/page.jsx); the studio ([components/CustomStudio.jsx](components/CustomStudio.jsx)) shows only enabled sleeve options and prices `base + sleeve`.
+
+### Student verification (account-based, never promo-based)
+[app/api/student/request/route.js](app/api/student/request/route.js) validates the email domain, issues a 24h token (service role), emails it ([lib/email/student.js](lib/email/student.js)); the customer enters it → `verify_student_token` RPC flips `student_verified`. Verified accounts qualify for `student`/`requires_student` promo codes.
+
+### Emails ([emails/](emails/), Resend via [lib/email/](lib/email/) — no-ops until `RESEND_API_KEY` set)
+New: [emails/paymentStatusUpdate.js](emails/paymentStatusUpdate.js) (approved/rejected) + [emails/paymentSubmitted.js](emails/paymentSubmitted.js) (customer ack + owner "verify"), wired in [lib/email/orders.js](lib/email/orders.js) (`sendPaymentStatusEmail`, `sendPaymentSubmittedEmails`) via [app/api/payments/verify](app/api/payments/verify/route.js) + [app/api/payments/submitted](app/api/payments/submitted/route.js). `totals()` now renders promo + online discount + tax; `buildOrderModel` surfaces them.
+
+## 17. Checkout / order lifecycle / manual emails / SEO (DONE)
+
+Refinement pass over the order + payment + email flow, plus full SEO. **Run migration [scripts/027_add_packed_status.sql](scripts/027_add_packed_status.sql)** (adds the `packed` status to the `orders_status_check` constraint) after 001–026.
+
+### Order lifecycle (Features 1 & 6) — [lib/orders.js](lib/orders.js)
+- Two distinct pre-confirmation states for bank transfer so the admin can tell them apart: `pending_payment` = **"Pending Payment Upload"** (order created, no proof yet), `pending_verification` = **"Pending Payment Verification"** (proof uploaded, awaiting admin). Never merge them.
+- Fulfilment steps are now three distinct stages: **Processing → Printing → Packed** (`packed` replaces the legacy `ready`; `ready` is kept as a label alias). `ORDER_TIMELINE`/`ORDER_TIMELINE_COD` and the customer timeline ([app/account/orders/[id]/page.jsx](app/account/orders/%5Bid%5D/page.jsx)) reflect this; `processing` is no longer folded into `printing`.
+- Per-status reusable email templates live in `STATUS_COPY` ([emails/orderStatusUpdate.js](emails/orderStatusUpdate.js)): confirmed / processing / printing / packed / shipped / delivered / cancelled.
+
+### COD vs Bank Transfer confirmation (Feature 1)
+- **COD**: `process_checkout` creates the order `confirmed` → client fires `/api/orders/confirm` → rich confirmation email sent immediately.
+- **Bank Transfer**: created `pending_payment`; **no** confirmation email at checkout (client skips the call; the route also gates on `status === 'confirmed'`). The customer's "Order Confirmed" email is sent later, manually, once an admin approves the payment (Feature 7).
+
+### Manual customer notifications (Feature 7) — admin only ever emails on purpose
+- `/api/orders/status` and `/api/payments/verify` **save only, never email**. After a status change or an approve/reject, [app/admin/orders/page.jsx](app/admin/orders/page.jsx) shows a fixed **"Notify the customer? [Send Email] [Skip]"** toast (`.admin-notify`). Send Email → `POST /api/orders/notify` → chooses the template from the order's current state (lifecycle `STATUS_COPY`, or payment-rejected). No email is ever sent automatically on an admin action.
+
+### Payment proof — upload later & replace
+- A bank-transfer customer who skipped the upload can finish it later from the account area (no more dead-end): the **order-details** payment card ([app/account/orders/[id]/page.jsx](app/account/orders/%5Bid%5D/page.jsx)) and the **dashboard order card** ([components/account/AccountDashboard.jsx](components/account/AccountDashboard.jsx)) show a CTA to `/checkout/payment/[id]` whenever an online order isn't approved (card CTA keys off `status === 'pending_payment'`; details CTA off the `payment_verifications.payment_status`).
+- [PaymentUpload](components/checkout/PaymentUpload.jsx) now only **locks on `approved`** — a `submitted` (awaiting-verification) proof can be **replaced** and a `rejected` one re-uploaded. Backend already supported this (storage `upsert` + `submit_payment_proof` overwrites; the RPC only advances status from the pre-verification states, so it never regresses a confirmed order). CTA labels: Upload / Replace / Re-upload by state.
+
+### Cart integrity + completion flow (Feature 2 + follow-ups) — [components/CartContext.jsx](components/CartContext.jsx)
+- The bag mirrors to `localStorage` (survives reload + the login round-trip); a `hydrated` flag lets [CheckoutClient](components/checkout/CheckoutClient.jsx) show "Loading your bag…" instead of flashing "your bag is empty".
+- **The cart is cleared at true completion, which differs by method:** `placeOrder` clears it only for **COD** (created `confirmed`). **Bank transfer** clears it **after the payment proof is uploaded** ([components/checkout/PaymentPageClient.jsx](components/checkout/PaymentPageClient.jsx) `handleComplete` → `clearCart()`), so a customer who abandons before paying keeps their bag. (Trade-off: the order row already exists at `pending_payment`, so the retained bag could seed a second order if they re-checkout instead of using the "Complete payment" CTA — accepted per product decision.)
+- **Post-completion screen** ([components/checkout/OrderComplete.jsx](components/checkout/OrderComplete.jsx)): after COD confirm OR bank-transfer proof upload, the page swaps to a completion screen that asks "view your order in your dashboard?" with exactly two destinations — **Yes → `/account/orders/[id]`** or **No → `/` (home)**. Nothing auto-navigates on completion anymore. The payment page is now a thin server shell delegating to [PaymentPageClient](components/checkout/PaymentPageClient.jsx) (owns the `completed` state); [PaymentUpload](components/checkout/PaymentUpload.jsx) signals completion via an `onComplete` callback instead of routing.
+
+### Bank details from env (Feature 3)
+- `bankTransferDetails` in [lib/data.js](lib/data.js) reads `NEXT_PUBLIC_BANK_NAME` / `NEXT_PUBLIC_ACCOUNT_TITLE` / `NEXT_PUBLIC_ACCOUNT_NUMBER` / `NEXT_PUBLIC_IBAN` (documented in [.env.local.example](.env.local.example)); never hardcoded. `bankTransferConfigured` lets the payment page show a graceful note if unset.
+
+### Timestamps (Feature 4)
+- Orders show **date + time** (viewer's local tz) everywhere: admin list ([app/admin/orders/page.jsx](app/admin/orders/page.jsx) `formatDateTime`), customer dashboard cards ([components/account/AccountDashboard.jsx](components/account/AccountDashboard.jsx) `fmtDateTime`), order details (already), and the status email (`orderDateTime`).
+
+### SEO & AI discoverability (Feature 8) — uses the `seo` skill
+- **Central helpers:** [lib/seo.js](lib/seo.js) (`SITE_URL`, builders: `organizationSchema`, `websiteSchema`, `breadcrumbSchema`, `productSchema`, `faqSchema`) + [components/JsonLd.jsx](components/JsonLd.jsx) (renders a JSON-LD `<script>`, server component).
+- **Route files:** [app/sitemap.js](app/sitemap.js) (static routes + all active products/categories from Supabase, ISR 1h), [app/robots.js](app/robots.js) (allow all, disallow admin/account/checkout/api/auth, points at sitemap), [app/manifest.js](app/manifest.js) (`/manifest.webmanifest`), [app/opengraph-image.jsx](app/opengraph-image.jsx) (dynamic 1200×630 brand OG image via `next/og`, auto-applied site-wide; product pages override with the product photo).
+- **Root [app/layout.jsx](app/layout.jsx):** `metadataBase`, title template, canonical, `robots`, `openGraph`/`twitter` (summary_large_image), `manifest`, a separate `viewport` export for `themeColor`, and site-wide Organization + WebSite JSON-LD in `<body>`.
+- **Per-page:** every public page sets `alternates.canonical` + OG. Product ([app/product/[slug]/page.jsx](app/product/%5Bslug%5D/page.jsx)) emits **Product + Offer** (PKR, InStock/OutOfStock from stock) + **BreadcrumbList** and a per-product OG image; category emits **BreadcrumbList**; size-guide emits a sizing **FAQPage**. `AggregateRating` is intentionally left for when review aggregates are wired (`productSchema` can carry it); `SearchAction` omitted (no site search).
+- **Note:** there is no `lint`/`next lint` script; `next build` runs TypeScript + compiles. Build is green with all SEO routes.

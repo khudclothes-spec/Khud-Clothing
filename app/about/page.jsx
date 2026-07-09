@@ -4,7 +4,10 @@ import { Reveal } from "@/components/Reveal";
 import { aboutBlocks, promises } from "@/lib/data";
 
 export const metadata = {
-  title: "About Khud"
+  title: "About Khud",
+  description: "Khud takes its name from the Urdu word for yourself. We build premium clothing and a custom-print studio around a single idea — what you wear should carry who you are.",
+  alternates: { canonical: "/about" },
+  openGraph: { url: "/about", title: "About Khud", description: "The story behind Khud — premium clothing built around the idea of yourself." }
 };
 
 export default function AboutPage() {

@@ -19,7 +19,9 @@ export const revalidate = 60;
 
 export const metadata = {
   title: "Khud — Wear Your Imprint",
-  description: "Premium ready-made clothing and a custom-print studio. Design yourself."
+  description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
+  alternates: { canonical: "/" },
+  openGraph: { url: "/", type: "website" }
 };
 
 export default async function HomePage() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
 
@@ -34,6 +34,7 @@ function parseCheckoutError(message) {
 const fallbackCart = {
   cart: [],
   cartCount: 0,
+  hydrated: false,
   subtotal: formatPrice(0),
   subtotalNumber: 0,
   cartOpen: false,
@@ -56,10 +57,41 @@ const fallbackCart = {
 
 const CartContext = createContext(fallbackCart);
 
+const CART_STORAGE_KEY = "khud:cart";
+
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  // `hydrated` flips true once we've read the persisted bag from localStorage.
+  // Consumers (e.g. checkout) use it so they never flash "cart is empty" during
+  // the first client render, before the saved cart has loaded.
+  const [hydrated, setHydrated] = useState(false);
   const supabase = createClient();
+
+  // Persist the bag to localStorage so it survives reloads AND the
+  // login → back-to-checkout round trip (Phase 2: never lose cart contents).
+  const skipPersist = useRef(true);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) setCart(parsed);
+      }
+    } catch {
+      // ignore corrupt/blocked storage
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+  useEffect(() => {
+    if (skipPersist.current) { skipPersist.current = false; return; }
+    try {
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+      // ignore quota/private-mode errors
+    }
+  }, [cart]);
 
   const addItem = useCallback((item) => {
     const key = item.key || item.name;
@@ -116,13 +148,13 @@ export function CartProvider({ children }) {
         throw new Error("Your bag has no purchasable items.");
       }
 
-      // Combine address lines + province + postal into a single TEXT field.
-      const shippingAddress = [
-        shipping.address_line1,
-        shipping.address_line2,
-        shipping.state,
-        shipping.postal_code
-      ].filter(Boolean).join(", ");
+      // Street lines only — province / postal / country are their own snapshot
+      // columns on the order now.
+      const shippingAddress = [shipping.address_line1, shipping.address_line2].filter(Boolean).join(", ");
+      const billingSame = shipping.billing_same !== false;
+      const billingAddress = billingSame
+        ? shippingAddress
+        : [shipping.billing_address_line1, shipping.billing_address_line2].filter(Boolean).join(", ");
 
       console.info("[checkout] submitting", { items });
 
@@ -133,7 +165,19 @@ export function CartProvider({ children }) {
           phone: shipping.phone,
           address: shippingAddress,
           city: shipping.city,
-          notes: null,
+          state: shipping.state || null,
+          postal_code: shipping.postal_code || null,
+          country: shipping.country || "Pakistan",
+          shipping_method: shipping.shipping_method || "standard",
+          billing_name: billingSame ? shipping.full_name : (shipping.billing_name || shipping.full_name),
+          billing_phone: billingSame ? shipping.phone : (shipping.billing_phone || shipping.phone),
+          billing_address: billingAddress,
+          billing_city: billingSame ? shipping.city : (shipping.billing_city || shipping.city),
+          billing_state: billingSame ? shipping.state : (shipping.billing_state || null),
+          billing_postal_code: billingSame ? shipping.postal_code : (shipping.billing_postal_code || null),
+          billing_country: billingSame ? shipping.country : (shipping.billing_country || "Pakistan"),
+          promo_code: shipping.promo_code || null,
+          notes: shipping.notes || null,
           payment_method: shipping.payment_method === "online" ? "online" : "cod"
         }
       });
@@ -144,19 +188,32 @@ export function CartProvider({ children }) {
       }
 
       console.info("[checkout] success", data);
-      setCart([]);
+      // Clear the bag only when checkout is truly complete. COD is complete the
+      // moment the order is created ('confirmed'), so clear now. Bank-transfer
+      // orders still need a payment proof — the cart is cleared after that upload
+      // (PaymentPageClient), so a customer who abandons before paying keeps their
+      // bag. Everything up to completion — Back, refresh, leaving — is safe.
+      if (data.status === "confirmed") {
+        setCart([]);
 
-      // Fire the server-side confirmation + owner-notification emails. This only
-      // sends the order id; all email content + sending happens on the server.
-      // Fire-and-forget so the "order placed" screen is instant, and never let
-      // an email hiccup fail a paid order.
-      fetch("/api/orders/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: data.order_id })
-      }).catch((e) => console.warn("[checkout] email trigger failed", e));
+        // Fire the server-side confirmation + owner-notification emails for COD
+        // (already confirmed). Bank-transfer confirmation is sent later by an
+        // admin. Only the order id is sent; content + delivery are server-side.
+        // Fire-and-forget so the "order placed" screen is instant.
+        fetch("/api/orders/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: data.order_id })
+        }).catch((e) => console.warn("[checkout] email trigger failed", e));
+      }
 
-      return { orderId: data.order_id, orderNumber: data.order_number };
+      return {
+        orderId: data.order_id,
+        orderNumber: data.order_number,
+        status: data.status,
+        paymentMethod: data.payment_method,
+        total: data.total
+      };
     },
     [cart]
   );
@@ -183,6 +240,7 @@ export function CartProvider({ children }) {
     () => ({
       cart,
       cartCount,
+      hydrated,
       subtotal: formatPrice(subtotalNumber),
       subtotalNumber,
       cartOpen,
@@ -194,7 +252,7 @@ export function CartProvider({ children }) {
       clearCart,
       placeOrder
     }),
-    [cart, cartCount, subtotalNumber, cartOpen]
+    [cart, cartCount, hydrated, subtotalNumber, cartOpen]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -37,6 +37,7 @@ export function CustomStudio() {
   const [product, setProduct] = useState(customFallbackGarments[0]);
   const [color, setColor] = useState(studioColors[0]);
   const [size, setSize] = useState("M");
+  const [sleeve, setSleeve] = useState("none");
   const [view, setView] = useState("Front");
   const [selection, setSelection] = useState(null);
   const [counts, setCounts] = useState({});
@@ -52,6 +53,21 @@ export function CustomStudio() {
 
   const isSleeve = customSleeveViews.includes(view);
 
+  // Sleeve upgrade options (Phase 3) — only those the admin enabled show up.
+  const sleeveOptions = [];
+  if (product.halfSleeve?.enabled) sleeveOptions.push({ key: "half", label: "Half sleeve", price: product.halfSleeve.price });
+  if (product.fullSleeve?.enabled) sleeveOptions.push({ key: "full", label: "Full sleeve", price: product.fullSleeve.price });
+  const selectedSleeve = sleeveOptions.find((o) => o.key === sleeve) || null;
+  const effectivePrice = (product.price || 0) + (selectedSleeve?.price || 0);
+
+  // Reset the sleeve choice to the first enabled option whenever the garment changes.
+  useEffect(() => {
+    const opts = [];
+    if (product.halfSleeve?.enabled) opts.push("half");
+    if (product.fullSleeve?.enabled) opts.push("full");
+    setSleeve(opts[0] ?? "none");
+  }, [product.id]);
+
   // ---- load customizable garments (categories enabled by the admin) ---------
   useEffect(() => {
     let active = true;
@@ -60,7 +76,7 @@ export function CustomStudio() {
         const supabase = createClient();
         const { data, error } = await supabase
           .from("categories")
-          .select("id, name, slug, is_customizable, mockup_key")
+          .select("id, name, slug, is_customizable, mockup_key, custom_base_price, custom_half_sleeve_enabled, custom_half_sleeve_price, custom_full_sleeve_enabled, custom_full_sleeve_price")
           .eq("is_customizable", true)
           .order("name");
         if (error) throw error;
@@ -71,7 +87,10 @@ export function CustomStudio() {
             name: c.name,
             slug: c.slug,
             mockupKey: key,
-            price: studioGarmentPrice[key] ?? 4000,
+            // Admin base price wins; else the static per-mockup price.
+            price: c.custom_base_price != null ? Number(c.custom_base_price) : (studioGarmentPrice[key] ?? 4000),
+            halfSleeve: { enabled: !!c.custom_half_sleeve_enabled, price: Number(c.custom_half_sleeve_price) || 0 },
+            fullSleeve: { enabled: !!c.custom_full_sleeve_enabled, price: Number(c.custom_full_sleeve_price) || 0 },
             shape: TEE_PATH
           };
         });
@@ -225,8 +244,8 @@ export function CustomStudio() {
     addItem({
       key: `custom-${Date.now()}`,
       name: `Custom ${product.name}`,
-      meta: `${color.name} · ${size} · ${areas}`,
-      price: product.price,
+      meta: `${color.name} · ${size}${selectedSleeve ? ` · ${selectedSleeve.label}` : ""} · ${areas}`,
+      price: effectivePrice,
       image: thumb,
       shape: product.shape,
       custom: true
@@ -304,6 +323,24 @@ export function CustomStudio() {
             ))}
           </div>
         </div>
+
+        {sleeveOptions.length > 0 && (
+          <div className="studio-bar__group">
+            <span className="studio-bar__label">Sleeve</span>
+            <div className="size-row">
+              {sleeveOptions.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  className={`choice-button ${o.key === sleeve ? "is-selected" : ""}`}
+                  onClick={() => setSleeve(o.key)}
+                >
+                  {o.label}{o.price > 0 ? ` +${formatPrice(o.price)}` : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="studio-grid">
@@ -422,7 +459,7 @@ export function CustomStudio() {
       <div className="studio-actionbar">
         <div className="studio-actionbar__info">
           <span className="studio-actionbar__product">Custom {product.name}</span>
-          <span className="studio-actionbar__price">{formatPrice(product.price)}</span>
+          <span className="studio-actionbar__price">{formatPrice(effectivePrice)}</span>
         </div>
         <button type="button" className="button button--dark studio-preview-btn" onClick={handlePreview} disabled={!ready}>
           Preview final design
@@ -449,7 +486,8 @@ export function CustomStudio() {
           colorKey: color.key,
           mockupKey: product.mockupKey,
           size,
-          price: product.price,
+          sleeve: selectedSleeve?.label ?? null,
+          price: effectivePrice,
           shape: product.shape
         }}
         onConfirm={confirmAdd}

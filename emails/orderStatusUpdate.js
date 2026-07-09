@@ -17,7 +17,8 @@ import {
 
 const c = brand.colors;
 
-// Copy + badge colour per status. Statuses we don't email for are omitted.
+// Copy + badge colour per status. Each lifecycle status the admin can notify on
+// has its own reusable template entry. Statuses we don't email for are omitted.
 export const STATUS_COPY = {
   confirmed: {
     label: "Confirmed",
@@ -26,10 +27,22 @@ export const STATUS_COPY = {
     body: "Thanks for your order. We've confirmed it and it's queued for production."
   },
   processing: {
-    label: "In production",
+    label: "Processing",
+    color: c.brass,
+    title: "Your order is being prepared",
+    body: "We're getting your order ready — our studio is preparing your pieces for production."
+  },
+  printing: {
+    label: "Printing",
     color: c.clay,
     title: "Your order is being printed",
     body: "Good news — your pieces are now in production. Our studio is printing and finishing your order."
+  },
+  packed: {
+    label: "Packed",
+    color: c.olive,
+    title: "Your order is packed",
+    body: "Your order has been packed and is ready to be handed to the courier for dispatch."
   },
   shipped: {
     label: "Shipped",
@@ -68,7 +81,7 @@ export function renderOrderStatusUpdate(order, status) {
     ${panel(
       infoTable([
         { label: "Order number", value: order.orderNumber, strong: true },
-        { label: "Order date", value: order.orderDate },
+        { label: "Order placed", value: order.orderDateTime || order.orderDate },
         { label: "Status", value: s.label, strong: true }
       ]),
       { title: "Order" }

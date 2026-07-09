@@ -19,6 +19,14 @@ export function LoginForm() {
 
   const supabase = createClient();
 
+  // A safe internal return path from ?redirect=, or null.
+  function safeRedirect() {
+    if (typeof window === "undefined") return null;
+    const next = new URLSearchParams(window.location.search).get("redirect");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+    return null;
+  }
+
   async function redirectByRole(userId) {
     // Step 2 — confirm the session is alive in the browser client
     const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -52,7 +60,10 @@ export function LoginForm() {
       return;
     }
 
-    router.push(profile.role === "admin" ? "/admin" : "/");
+    // Honour a safe ?redirect= for everyone (e.g. return to checkout); else
+    // fall back to a role-based landing.
+    const next = safeRedirect();
+    router.push(next || (profile.role === "admin" ? "/admin" : "/"));
   }
 
   async function handleLogin(e) {

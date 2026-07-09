@@ -10,7 +10,9 @@ export const revalidate = 60;
 
 export const metadata = {
   title: "Shop by Category",
-  description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints."
+  description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints.",
+  alternates: { canonical: "/shop" },
+  openGraph: { url: "/shop", title: "Shop by Category — Khud", description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints." }
 };
 
 const FILLS = [COLORS.ink, COLORS.charcoal, COLORS.olive, COLORS.clay, COLORS.brass, COLORS.terra];

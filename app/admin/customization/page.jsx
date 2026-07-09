@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 
 const MOCKUP_OPTIONS = [
@@ -18,6 +18,7 @@ export default function AdminCustomizationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     fetchAll();
@@ -29,7 +30,7 @@ export default function AdminCustomizationPage() {
     setError("");
     const { data, error: err } = await supabase
       .from("categories")
-      .select("id, name, slug, is_active, is_customizable, mockup_key")
+      .select("id, name, slug, is_active, is_customizable, mockup_key, custom_base_price, custom_half_sleeve_enabled, custom_half_sleeve_price, custom_full_sleeve_enabled, custom_full_sleeve_price")
       .order("name");
     if (err) {
       setError(
@@ -88,12 +89,14 @@ export default function AdminCustomizationPage() {
                 <th>Customizable</th>
                 <th>Category</th>
                 <th>Mockup set</th>
+                <th>Pricing</th>
                 <th>Storefront</th>
               </tr>
             </thead>
             <tbody>
               {categories.map((c) => (
-                <tr key={c.id}>
+                <Fragment key={c.id}>
+                <tr>
                   <td>
                     <label className="admin-check">
                       <input
@@ -122,11 +125,29 @@ export default function AdminCustomizationPage() {
                     </select>
                   </td>
                   <td>
+                    <button
+                      type="button"
+                      className="admin-btn-edit"
+                      disabled={!c.is_customizable}
+                      onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                    >
+                      {expandedId === c.id ? "Close" : "Sleeves & price"}
+                    </button>
+                  </td>
+                  <td>
                     <span className={`status-badge status-badge--${c.is_active ? "active" : "draft"}`}>
                       {c.is_active ? "Active" : "Hidden"}
                     </span>
                   </td>
                 </tr>
+                {expandedId === c.id && (
+                  <tr className="admin-detail-row">
+                    <td colSpan={5}>
+                      <SleevePricingEditor category={c} busy={busyId === c.id} onSave={(patchObj) => patch(c, patchObj)} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -137,6 +158,64 @@ export default function AdminCustomizationPage() {
         Note: a category must also be <strong>Active</strong> on the storefront to appear in the
         studio for shoppers.
       </p>
+    </div>
+  );
+}
+
+/* ───────────────────────── Sleeve pricing editor ───────────────────────── */
+
+function SleevePricingEditor({ category, busy, onSave }) {
+  const [form, setForm] = useState({
+    custom_base_price: category.custom_base_price ?? "",
+    custom_half_sleeve_enabled: !!category.custom_half_sleeve_enabled,
+    custom_half_sleeve_price: category.custom_half_sleeve_price ?? "",
+    custom_full_sleeve_enabled: !!category.custom_full_sleeve_enabled,
+    custom_full_sleeve_price: category.custom_full_sleeve_price ?? ""
+  });
+  const [saved, setSaved] = useState(false);
+
+  function set(name, value) { setForm((p) => ({ ...p, [name]: value })); setSaved(false); }
+
+  function save() {
+    onSave({
+      custom_base_price: form.custom_base_price === "" ? null : Number(form.custom_base_price),
+      custom_half_sleeve_enabled: !!form.custom_half_sleeve_enabled,
+      custom_half_sleeve_price: form.custom_half_sleeve_price === "" ? null : Number(form.custom_half_sleeve_price),
+      custom_full_sleeve_enabled: !!form.custom_full_sleeve_enabled,
+      custom_full_sleeve_price: form.custom_full_sleeve_price === "" ? null : Number(form.custom_full_sleeve_price)
+    });
+    setSaved(true);
+  }
+
+  return (
+    <div className="admin-detail sleeve-editor">
+      <p className="admin-hint" style={{ marginTop: 0 }}>Set the base price and optional sleeve upgrades. Only enabled sleeve options show in the studio.</p>
+      <div className="admin-form-row admin-form-row--3">
+        <div className="form-group">
+          <label className="form-label">Base price (Rs)</label>
+          <input type="number" min="0" className="form-input" value={form.custom_base_price} onChange={(e) => set("custom_base_price", e.target.value)} placeholder="e.g. 4000" />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Half-sleeve price (Rs)</label>
+          <input type="number" min="0" className="form-input" value={form.custom_half_sleeve_price} onChange={(e) => set("custom_half_sleeve_price", e.target.value)} disabled={!form.custom_half_sleeve_enabled} placeholder="0" />
+          <label className="form-check" style={{ marginTop: 8 }}>
+            <input type="checkbox" className="form-checkbox" checked={form.custom_half_sleeve_enabled} onChange={(e) => set("custom_half_sleeve_enabled", e.target.checked)} />
+            <span className="form-check-label">Offer half sleeve</span>
+          </label>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Full-sleeve price (Rs)</label>
+          <input type="number" min="0" className="form-input" value={form.custom_full_sleeve_price} onChange={(e) => set("custom_full_sleeve_price", e.target.value)} disabled={!form.custom_full_sleeve_enabled} placeholder="0" />
+          <label className="form-check" style={{ marginTop: 8 }}>
+            <input type="checkbox" className="form-checkbox" checked={form.custom_full_sleeve_enabled} onChange={(e) => set("custom_full_sleeve_enabled", e.target.checked)} />
+            <span className="form-check-label">Offer full sleeve</span>
+          </label>
+        </div>
+      </div>
+      <div className="admin-detail__foot">
+        {saved && <span className="account-note account-note--ok" style={{ margin: 0, padding: "6px 10px" }}>Saved</span>}
+        <button type="button" className="button button--dark" disabled={busy} onClick={save}>Save pricing</button>
+      </div>
     </div>
   );
 }

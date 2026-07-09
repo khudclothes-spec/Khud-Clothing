@@ -1,13 +1,26 @@
 import { Reveal } from "@/components/Reveal";
 import { fitCards, measureTips, sizeRows } from "@/lib/data";
+import { JsonLd } from "@/components/JsonLd";
+import { faqSchema } from "@/lib/seo";
 
 export const metadata = {
-  title: "Size Guide"
+  title: "Size Guide",
+  description: "Khud size guide — all measurements in inches, laid flat. Our tees and hoodies run oversized by design; size down for a regular fit.",
+  alternates: { canonical: "/size-guide" },
+  openGraph: { url: "/size-guide", title: "Size Guide — Khud", description: "Find your fit — Khud tees and hoodies run oversized by design." }
 };
+
+// Sizing FAQ, grounded in the guidance shown on this page.
+const SIZE_FAQS = [
+  { q: "Do Khud tees and hoodies run true to size?", a: "Khud tees and hoodies run oversized by design. If you prefer a regular fit, size down one." },
+  { q: "How are the size measurements taken?", a: "All measurements are given in inches, taken with the garment laid flat." },
+  { q: "How do I choose the right size?", a: "Lay a t-shirt you already own and love flat, measure it, and compare it against our chart to find your best fit." }
+];
 
 export default function SizeGuidePage() {
   return (
     <main className="container container--narrow" style={{ paddingBottom: 90 }}>
+      <JsonLd data={faqSchema(SIZE_FAQS)} />
       <section className="page-title" data-reveal style={{ marginBottom: 40 }}>
         <div className="eyebrow">Fit and Sizing</div>
         <h1 className="display display--large">Size guide.</h1>
