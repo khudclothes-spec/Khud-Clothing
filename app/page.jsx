@@ -87,7 +87,7 @@ export default async function HomePage() {
     name: "Customize",
     count: "Made to order",
     href: "/customize",
-    image: "/mockups/classic/black/front.png",
+    image: "/mockups/black/front.png",
     fill: COLORS.clay
   });
 

@@ -6458,6 +6458,8 @@ svg {
 .admin-notify__msg { font-size: 13.5px; line-height: 1.5; flex: 1 1 240px; }
 .admin-notify__msg strong { color: #fff; }
 .admin-notify__actions { display: flex; gap: 10px; flex-shrink: 0; }
+.admin-notify--error { background: var(--clay, #a94732); bottom: 92px; }
+.admin-notify--error .admin-notify__msg { color: #fff; }
 @media (max-width: 560px) {
   .admin-notify { left: 16px; right: 16px; transform: none; max-width: none; }
 }

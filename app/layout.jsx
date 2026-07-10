@@ -18,9 +18,8 @@ export const metadata = {
   publisher: "Khud",
   manifest: "/manifest.webmanifest",
   alternates: { canonical: "/" },
-  icons: {
-    apple: [{ url: "/images/logo-white-writing.png" }]
-  },
+  // Favicon links are declared manually in <head> below so they can be
+  // theme-aware (white wordmark on dark tabs, black on light tabs).
   openGraph: {
     title: "Khud — Wear Your Imprint",
     description: SITE_DESCRIPTION,
@@ -57,6 +56,12 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;0,6..96,800;1,6..96,400;1,6..96,500&family=Hanken+Grotesk:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
+        {/* Tab favicon = the Khud wordmark. White version by default (and on dark
+            browser themes, as requested); auto-switches to the black version on
+            light themes so it's always legible. */}
+        <link rel="icon" type="image/png" href="/images/logo-white-writing.png" />
+        <link rel="icon" type="image/png" media="(prefers-color-scheme: light)" href="/images/logo-black-writing.png" />
+        <link rel="apple-touch-icon" href="/images/logo-white-writing.png" />
       </head>
       <body>
         {/* Site-wide structured data: who we are + the site itself. */}

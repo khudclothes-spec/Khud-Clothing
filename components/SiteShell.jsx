@@ -204,6 +204,17 @@ function ShellChrome({ children }) {
 
       <header className="site-header">
         <nav className="site-nav" aria-label="Main navigation">
+          {/* Mobile-only: hamburger sits on the LEFT (hidden on desktop via CSS),
+              matching the menu panel which opens from the left. */}
+          <button
+            type="button"
+            className="icon-button burger"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu />
+          </button>
+
           <Link href="/" onClick={(event) => handleLink(event, "/")} className="logo-link" aria-label="Khud home">
             <img src={blackLogo} alt="Khud" className="logo" />
           </Link>
@@ -238,15 +249,6 @@ function ShellChrome({ children }) {
             <button type="button" className="icon-button" onClick={openCart} aria-label="Open cart">
               <Bag />
               {cartCount > 0 ? <span className="cart-count">{cartCount}</span> : null}
-            </button>
-
-            <button
-              type="button"
-              className="icon-button burger"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu />
             </button>
           </div>
         </nav>

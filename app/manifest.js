@@ -11,9 +11,10 @@ export default function manifest() {
     display: "standalone",
     background_color: "#F4EFE6",
     theme_color: "#11100E",
+    // Splash/background is the light bone colour, so the black wordmark stays
+    // legible against it.
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-      { src: "/images/logo-white-writing.png", sizes: "512x512", type: "image/png" }
+      { src: "/images/logo-black-writing.png", sizes: "500x500", type: "image/png", purpose: "any" }
     ]
   };
 }

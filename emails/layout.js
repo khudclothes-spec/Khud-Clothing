@@ -33,8 +33,8 @@ export function emailLayout({ title, preheader = "", contentHtml }) {
 
           <!-- Header -->
           <tr>
-            <td style="background:${c.ink};padding:26px 32px;">
-              <img src="${brand.logoUrl}" alt="${escapeHtml(brand.name)}" height="30" style="height:30px;width:auto;display:block;" />
+            <td style="background:${c.ink};padding:24px 32px;">
+              <img src="${brand.logoUrl}" alt="${escapeHtml(brand.name)}" height="46" style="height:46px;width:auto;display:block;" />
             </td>
           </tr>
 

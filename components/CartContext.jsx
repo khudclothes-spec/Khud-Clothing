@@ -195,17 +195,17 @@ export function CartProvider({ children }) {
       // bag. Everything up to completion — Back, refresh, leaving — is safe.
       if (data.status === "confirmed") {
         setCart([]);
-
-        // Fire the server-side confirmation + owner-notification emails for COD
-        // (already confirmed). Bank-transfer confirmation is sent later by an
-        // admin. Only the order id is sent; content + delivery are server-side.
-        // Fire-and-forget so the "order placed" screen is instant.
-        fetch("/api/orders/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: data.order_id })
-        }).catch((e) => console.warn("[checkout] email trigger failed", e));
       }
+
+      // Notify (fire-and-forget) for EVERY placed order: the four owners get a
+      // "new order" email now (COD or bank transfer); the customer gets their
+      // confirmation only for COD. The route decides + is idempotent; we just
+      // hand it the order id so the screen stays instant.
+      fetch("/api/orders/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: data.order_id })
+      }).catch((e) => console.warn("[checkout] notify trigger failed", e));
 
       return {
         orderId: data.order_id,

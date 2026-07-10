@@ -28,6 +28,8 @@ export default function AdminOrdersPage() {
   // Feature 7: after any admin change, offer to notify the customer. Emails are
   // never sent automatically. { orderId, orderNumber, label, sending, result }
   const [notify, setNotify] = useState(null);
+  // Surfaced when a status change is rejected server-side (e.g. out of stock).
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -53,34 +55,46 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function fetchAll() {
-    setLoading(true);
+  // `silent` re-reads without flipping the full-page spinner (keeps expanded
+  // rows / scroll intact after an in-place mutation).
+  async function fetchAll(silent = false) {
+    if (!silent) setLoading(true);
     const { data } = await supabase
       .from("orders")
-      .select("id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, promo_code, tax, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, product_id, products(name)), payment_verifications(payment_status, payment_screenshot_path, admin_notes, uploaded_at, verified_at)")
+      .select("id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, promo_code, tax, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, stock_committed, order_items(id, quantity, unit_price, size, color, product_id, products(name)), payment_verifications(payment_status, payment_screenshot_path, admin_notes, uploaded_at, verified_at)")
       .order("created_at", { ascending: false });
     setOrders(data ?? []);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 
   async function updateStatus(orderId, status) {
     const prevOrders = orders;
+    setActionError("");
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     // Route through the API so the status is saved server-side. The customer is
     // NOT emailed automatically — after a successful save we ask the admin
-    // whether to notify (Feature 7). Roll back the UI if the save fails.
+    // whether to notify (Feature 7). Roll back the UI (and show why) if it fails
+    // — e.g. committing a bank-transfer order whose stock has since sold out.
     try {
       const res = await fetch("/api/orders/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, status })
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        let msg = "Could not update the status.";
+        try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+        throw new Error(msg);
+      }
+      // Stock committed status may differ from what we optimistically set, so
+      // refresh silently to reflect stock_committed / confirmed state.
+      await fetchAll(true);
       const order = prevOrders.find((o) => o.id === orderId);
       if (order) askNotify(order, statusLabel(status));
     } catch (err) {
       console.error("[admin] status update failed", err);
       setOrders(prevOrders);
+      setActionError(err.message || "Could not update the status.");
     }
   }
 
@@ -222,6 +236,16 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
+      {/* Server rejected a change (e.g. stock sold out before approval). */}
+      {actionError && (
+        <div className="admin-notify admin-notify--error" role="alert">
+          <div className="admin-notify__body">
+            <span className="admin-notify__msg">{actionError}</span>
+            <button type="button" className="button button--outline button--sm" onClick={() => setActionError("")}>Dismiss</button>
+          </div>
+        </div>
+      )}
+
       {/* Feature 7: manual customer notification after a status/payment change. */}
       {notify && (
         <div className="admin-notify" role="status" aria-live="polite">
@@ -288,13 +312,17 @@ function AdminPaymentPanel({ order, supabase, onChanged, onActed }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id, action, notes })
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        let msg = "Could not update the payment. Please try again.";
+        try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+        throw new Error(msg);
+      }
       // Offer to notify the customer (approve → "Confirmed", reject → "Payment
       // rejected"). No email was sent by the API — the admin decides here.
       onActed?.(order, action === "approve" ? "Confirmed" : "Payment rejected");
-      await onChanged();
+      await onChanged(true);
     } catch (err) {
-      setError("Could not update the payment. Please try again.");
+      setError(err.message || "Could not update the payment. Please try again.");
       console.error("[admin] payment verify failed", err);
     } finally {
       setBusy("");

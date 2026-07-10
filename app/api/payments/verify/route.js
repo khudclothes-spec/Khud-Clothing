@@ -32,23 +32,46 @@ export async function POST(request) {
   if (profile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const approved = action === "approve";
-  const now = new Date().toISOString();
 
+  if (action === "approve") {
+    // Commit stock atomically (locks variants + RE-CHECKS availability), mark the
+    // payment approved, and confirm the order — all in one RPC. Stock is only
+    // ever decremented here for bank-transfer orders.
+    const { data, error } = await admin.rpc("confirm_order_payment", {
+      p_order_id: orderId,
+      p_verified_by: user.id,
+      p_notes: notes ?? null
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data?.ok) {
+      if (data?.error === "OUT_OF_STOCK") {
+        const variant = [data.color, data.size].filter(Boolean).join(" · ");
+        const label = `${data.name || "An item"}${variant ? ` (${variant})` : ""}`;
+        return NextResponse.json(
+          { error: `Can't approve — ${label} is out of stock (only ${data.available ?? 0} left, order needs ${data.requested}). Restock it or cancel the order.`, code: "OUT_OF_STOCK" },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({ error: data?.error || "Could not approve payment." }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, status: "confirmed" });
+  }
+
+  // Reject: record the rejection + send the order back to await a fresh proof.
+  // No stock is involved (online orders never reserve stock until approval).
   const { error: pvErr } = await admin
     .from("payment_verifications")
     .update({
-      payment_status: approved ? "approved" : "rejected",
+      payment_status: "rejected",
       verified_by: user.id,
-      verified_at: now,
+      verified_at: new Date().toISOString(),
       admin_notes: notes ?? null
     })
     .eq("order_id", orderId);
   if (pvErr) return NextResponse.json({ error: pvErr.message }, { status: 500 });
 
-  const newStatus = approved ? "confirmed" : "pending_payment";
-  const { error: ordErr } = await admin.from("orders").update({ status: newStatus }).eq("id", orderId);
+  const { error: ordErr } = await admin.from("orders").update({ status: "pending_payment" }).eq("id", orderId);
   if (ordErr) return NextResponse.json({ error: ordErr.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, status: newStatus });
+  return NextResponse.json({ ok: true, status: "pending_payment" });
 }

@@ -29,7 +29,8 @@ export function renderOwnerOrderNotification(order) {
         { label: "Email", value: order.customerEmail },
         { label: "Phone", value: order.customerPhone },
         { label: "Order #", value: order.orderNumber },
-        { label: "Placed", value: order.orderDateTime }
+        { label: "Placed", value: order.orderDateTime },
+        { label: "Payment", value: order.paymentMethodLabel, strong: true }
       ]),
       { title: "Customer" }
     )}
