@@ -19,6 +19,32 @@ export function LoginForm() {
 
   const supabase = createClient();
 
+  // Turn an opaque Supabase auth error (often an empty {} when GoTrue can't send
+  // the confirmation email) into something actionable.
+  function friendlyAuthError(err) {
+    const raw = (err?.message ?? "").toString().trim();
+    const low = raw.toLowerCase();
+    const status = err?.status;
+    const code = (err?.code ?? "").toLowerCase();
+
+    if (low.includes("rate limit") || status === 429 || code.includes("rate_limit")) {
+      return "Supabase's email rate limit was hit, so the account couldn't be created. Wait ~1 hour, or (better) set up custom SMTP in Supabase → Authentication → Emails so confirmation emails actually send.";
+    }
+    if (low.includes("sending") && low.includes("email")) {
+      return "The confirmation email couldn't be sent — Supabase email isn't set up. In Supabase → Authentication → Emails, configure SMTP (e.g. Resend), or turn off 'Confirm email' to allow instant sign-up.";
+    }
+    if (low.includes("database error")) {
+      return "Sign-up failed on the database side (the profile-creation trigger likely errored). Check Supabase → Logs → Auth for the exact reason.";
+    }
+    if (low.includes("already registered") || low.includes("already been registered") || code.includes("already")) {
+      return "An account with this email already exists. Try signing in instead.";
+    }
+    if (!raw || raw === "{}" || raw === "[object Object]") {
+      return "Couldn't create your account. This is almost always because Supabase can't send the confirmation email (unconfigured or rate-limited). Set up SMTP in Supabase → Authentication → Emails, or temporarily disable 'Confirm email'.";
+    }
+    return raw;
+  }
+
   // A safe internal return path from ?redirect=, or null.
   function safeRedirect() {
     if (typeof window === "undefined") return null;
@@ -107,7 +133,8 @@ export function LoginForm() {
     });
 
     if (authError) {
-      setError(authError.message);
+      console.error("[khud] signup failed:", authError.status, authError.code, authError.message);
+      setError(friendlyAuthError(authError));
       setLoading(false);
       return;
     }

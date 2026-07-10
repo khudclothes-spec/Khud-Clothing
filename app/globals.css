@@ -1473,6 +1473,21 @@ svg {
   line-height: 1.6;
 }
 
+/* "Use a larger device" hint pill (overrides the generic .builder-title p). */
+.builder-title .studio-device-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: none;
+  margin: 0 auto 30px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(185, 145, 73, 0.14);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
 .builder-layout {
   display: grid;
   grid-template-columns: 1.3fr 0.85fr;
@@ -2289,6 +2304,34 @@ svg {
   font-size: 10.5px;
   text-align: center;
 }
+
+/* Cart size-guide link (bag only — not shown after checkout). */
+.cart-sizeguide {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--clay);
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+.cart-sizeguide:hover { color: var(--ink); }
+
+/* Exchange / returns policy note in the bag. */
+.cart-policy {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--taupe);
+  color: var(--charcoal);
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: center;
+}
+.cart-policy strong { color: var(--ink); }
 
 @media (max-width: 1024px) {
   .hero,
@@ -4063,6 +4106,19 @@ svg {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.pd-option__label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pd-sizeguide-link {
+  color: var(--clay);
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  letter-spacing: 0.04em;
+}
+.pd-sizeguide-link:hover { color: var(--ink); }
 
 .pd-option__label strong {
   color: var(--ink);

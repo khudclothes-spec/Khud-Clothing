@@ -16,8 +16,10 @@ export default function VerifyEmailPage() {
   const [cooldown, setCooldown] = useState(0);
   const supabaseRef = useRef(null);
 
-  // Watch for verification: same-browser confirmation clicks fire
-  // onAuthStateChange; a poll covers the session appearing any other way.
+  // Complete the confirmation link → establish the session → the user lands
+  // already signed in (no second sign-in). Handles the token_hash link
+  // (verifyOtp — works on ANY device) and the PKCE code link (same browser),
+  // and falls back to detecting a session that appears any other way.
   useEffect(() => {
     const supabase = createClient();
     supabaseRef.current = supabase;
@@ -30,19 +32,56 @@ export default function VerifyEmailPage() {
       if (done) return;
       done = true;
       setVerified(true);
-      setTimeout(() => router.push("/"), 1400);
+      // Land signed in. Honour a safe ?redirect=, else go home.
+      const next = params.get("redirect");
+      const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      setTimeout(() => router.push(dest), 1200);
     }
 
-    async function check() {
+    async function run() {
+      // The server confirm route (/auth/confirm) bounced back — link bad/expired.
+      if (params.get("error")) {
+        setError("That verification link didn't work — it may have expired or already been used. Request a new one below.");
+        return;
+      }
+
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+
+      // token_hash link landing here directly (fallback): verifyOtp confirms +
+      // signs in without a PKCE verifier, so it works cross-device.
+      if (tokenHash && type) {
+        const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+        window.history.replaceState({}, "", "/verify-email");
+        if (!otpErr) { finish(); return; }
+        setError("This verification link is invalid or has expired. Request a new one below.");
+        return;
+      }
+
+      // Old-style PKCE `?code=` link (same browser): exchange it for a session.
+      const code = params.get("code");
+      if (code) {
+        const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+        window.history.replaceState({}, "", "/verify-email");
+        if (!exErr) { finish(); return; }
+      }
+
+      // Otherwise just check whether a session already exists.
       const { data } = await supabase.auth.getUser();
       if (data?.user?.email_confirmed_at) finish();
     }
 
-    check();
+    run();
+
+    // Same-browser confirmation clicks fire onAuthStateChange; the poll covers
+    // the session appearing any other way.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.email_confirmed_at) finish();
     });
-    const interval = setInterval(check, 4000);
+    const interval = setInterval(async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.email_confirmed_at) finish();
+    }, 4000);
 
     return () => {
       clearInterval(interval);

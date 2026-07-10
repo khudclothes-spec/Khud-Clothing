@@ -333,7 +333,10 @@ export function ProductDetail({ product }) {
           {/* Sizes */}
           {sizeScale.length > 0 && (
             <div className="pd-option">
-              <div className="pd-option__label">Size</div>
+              <div className="pd-option__label pd-option__label--row">
+                <span>Size</span>
+                <Link href="/size-guide" className="pd-sizeguide-link">Size guide</Link>
+              </div>
               <div className="pd-sizes">
                 {sizeScale.map((size) => {
                   const avail = !soldOut && selectedColor ? sizeAvailableIn(selectedColor, size) : false;

@@ -58,7 +58,10 @@ export function CustomStudio() {
   if (product.halfSleeve?.enabled) sleeveOptions.push({ key: "half", label: "Half sleeve", price: product.halfSleeve.price });
   if (product.fullSleeve?.enabled) sleeveOptions.push({ key: "full", label: "Full sleeve", price: product.fullSleeve.price });
   const selectedSleeve = sleeveOptions.find((o) => o.key === sleeve) || null;
-  const effectivePrice = (product.price || 0) + (selectedSleeve?.price || 0);
+  // Price is exactly what the admin set for the chosen sleeve (half OR full) —
+  // NOT base + sleeve. Falls back to the base price only when the garment has no
+  // sleeve options enabled.
+  const effectivePrice = selectedSleeve ? (selectedSleeve.price || 0) : (product.price || 0);
 
   // Reset the sleeve choice to the first enabled option whenever the garment changes.
   useEffect(() => {
@@ -335,7 +338,7 @@ export function CustomStudio() {
                   className={`choice-button ${o.key === sleeve ? "is-selected" : ""}`}
                   onClick={() => setSleeve(o.key)}
                 >
-                  {o.label}{o.price > 0 ? ` +${formatPrice(o.price)}` : ""}
+                  {o.label}
                 </button>
               ))}
             </div>

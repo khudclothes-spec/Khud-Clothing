@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
-// Account-based student verification (never promo-code based). Enter a
-// university email → receive a code → enter it here → student_verified flips.
+// Account-based student verification. The code is sent to the customer's OWN
+// registered email (not a typed one), so only the mailbox owner can verify and
+// only accounts registered with a university email qualify. After verifying,
+// they're told to use STUDENT10 at checkout.
 export function StudentVerify() {
   const router = useRouter();
   const supabase = createClient();
-  const [stage, setStage] = useState("email"); // email | token | done
-  const [email, setEmail] = useState("");
+  const [stage, setStage] = useState("start"); // start | token | done
+  const [accountEmail, setAccountEmail] = useState("");
   const [token, setToken] = useState("");
   const [domains, setDomains] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -19,24 +21,23 @@ export function StudentVerify() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("student_email_domains").select("domain").eq("is_active", true);
-      setDomains((data ?? []).map((d) => d.domain));
+      const [{ data: domainRows }, { data: userData }] = await Promise.all([
+        supabase.from("student_email_domains").select("domain").eq("is_active", true),
+        supabase.auth.getUser()
+      ]);
+      setDomains((domainRows ?? []).map((d) => d.domain));
+      setAccountEmail(userData?.user?.email ?? "");
     })();
   }, [supabase]);
 
-  async function requestCode(e) {
-    e.preventDefault();
+  async function requestCode() {
     setBusy(true); setError(""); setNote("");
     try {
-      const res = await fetch("/api/student/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
+      const res = await fetch("/api/student/request", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not send a code.");
       setStage("token");
-      setNote("We've emailed a verification code. Enter it below.");
+      setNote(`We've emailed a verification code to ${accountEmail}. Enter it below.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -69,24 +70,28 @@ export function StudentVerify() {
   }
 
   if (stage === "done") {
-    return <div className="account-note account-note--ok" style={{ marginBottom: 0 }}>You're verified — student pricing is now unlocked.</div>;
+    return (
+      <div className="account-note account-note--ok" style={{ marginBottom: 0 }}>
+        You're verified! Use code <strong>STUDENT10</strong> at checkout to get your student discount.
+      </div>
+    );
   }
 
   return (
     <div className="student-verify">
       <div className="student-verify__title">Student verification</div>
       <p className="form-hint" style={{ marginBottom: 12 }}>
-        Verify once with your university email to unlock student-only discounts.
-        {domains.length > 0 && <> Approved domains: {domains.join(", ")}.</>}
+        We'll send a verification code to your account email
+        {accountEmail ? <> (<strong>{accountEmail}</strong>)</> : ""}. Verify once to unlock student pricing.
+        {domains.length > 0 && <> Approved university domains: {domains.join(", ")}.</>}
       </p>
       {error && <div className="account-note account-note--err">{error}</div>}
       {note && <div className="account-note account-note--ok">{note}</div>}
 
-      {stage === "email" ? (
-        <form onSubmit={requestCode} className="student-verify__row">
-          <input type="email" className="form-input" placeholder="you@university.edu.pk" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <button type="submit" className="button button--dark" disabled={busy}>{busy ? "Sending…" : "Send code"}</button>
-        </form>
+      {stage === "start" ? (
+        <button type="button" className="button button--dark" onClick={requestCode} disabled={busy}>
+          {busy ? "Sending…" : "Send verification code to my email"}
+        </button>
       ) : (
         <form onSubmit={verify} className="student-verify__row">
           <input className="form-input" placeholder="Enter code" value={token} onChange={(e) => setToken(e.target.value)} required style={{ textTransform: "uppercase" }} />

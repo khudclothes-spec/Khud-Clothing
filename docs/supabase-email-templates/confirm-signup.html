@@ -23,7 +23,7 @@
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;">
               <tr>
                 <td style="border-radius:3px;background:#11100E;">
-                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 28px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#F4EFE6;text-decoration:none;border-radius:3px;">Verify my email</a>
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/" target="_blank" style="display:inline-block;padding:14px 28px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#F4EFE6;text-decoration:none;border-radius:3px;">Verify my email</a>
                 </td>
               </tr>
             </table>
@@ -31,7 +31,7 @@
               Or paste this link into your browser:
             </p>
             <p style="margin:0 0 18px;font-size:12px;line-height:1.5;word-break:break-all;">
-              <a href="{{ .ConfirmationURL }}" style="color:#A94732;text-decoration:none;">{{ .ConfirmationURL }}</a>
+              <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/" style="color:#A94732;text-decoration:none;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/</a>
             </p>
             <p style="margin:0;font-size:12px;line-height:1.6;color:#5F5A52;">
               If you didn't create a Khud account, you can safely ignore this email.

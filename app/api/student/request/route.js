@@ -3,22 +3,13 @@ import crypto from "crypto";
 import { createServerClient, createAdminClient } from "@/lib/supabase-server";
 import { sendStudentVerificationEmail } from "@/lib/email/student";
 
-// Authenticated customer requests student verification for a university email.
-// Validates the domain against the admin allow-list, issues a one-time token
-// (server-side), stores it, and emails it. The token is entered back on the
-// account page and consumed by the verify_student_token() RPC.
+// Authenticated customer requests student verification. The code is ALWAYS sent
+// to the email their account is registered with (never an arbitrary typed email)
+// so only the actual mailbox owner can verify. That registered email's domain
+// must be on the admin allow-list. Issues a one-time token (server-side), stores
+// it, and emails it. The token is entered back on the account page and consumed
+// by the verify_student_token() RPC.
 export async function POST(request) {
-  let email;
-  try {
-    ({ email } = await request.json());
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-  email = String(email || "").trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
-  }
-
   const supabase = await createServerClient();
   let user = null;
   try {
@@ -28,6 +19,12 @@ export async function POST(request) {
     user = null;
   }
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  // Use the account's own registered email — not anything from the request body.
+  const email = String(user.email || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Your account has no email on file." }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 
@@ -50,7 +47,7 @@ export async function POST(request) {
   const domains = (allowed ?? []).map((d) => d.domain.toLowerCase());
   if (domains.length > 0 && !domains.includes(domain)) {
     return NextResponse.json(
-      { error: "That email domain isn't on our approved university list." },
+      { error: `Your account email (${email}) isn't a recognised university email, so it can't be verified for student pricing.` },
       { status: 400 }
     );
   }

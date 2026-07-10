@@ -19,6 +19,9 @@ export default function CustomizePage() {
           Add text and artwork to any printable area, drag it into place, then approve your final
           proof before it goes in your bag.
         </p>
+        <p className="studio-device-note" role="note">
+          <span aria-hidden="true">💻</span> For the best experience, design on a laptop or a larger screen.
+        </p>
       </section>
       <CustomStudio />
     </main>
