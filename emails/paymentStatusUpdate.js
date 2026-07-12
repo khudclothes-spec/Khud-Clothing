@@ -11,7 +11,7 @@ export function renderPaymentStatusUpdate(order, status, notes) {
   const content = `
     ${eyebrow(approved ? "Payment approved" : "Payment needs attention")}
     ${heading(approved
-      ? `Thanks, ${order.customerFirstName || "there"} — payment received.`
+      ? `Thanks, ${order.customerFirstName || "there"}, payment received.`
       : `We couldn't verify your payment.`)}
     ${paragraph(
       approved

@@ -6206,6 +6206,16 @@ svg {
   text-transform: uppercase;
 }
 
+.student-verified { margin-bottom: 14px; }
+.student-verified .student-badge { margin-bottom: 8px; }
+.student-verified__promo {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--charcoal);
+}
+.student-verified__promo strong { color: var(--clay); }
+
 .profile-list { display: grid; gap: 12px; margin: 0; }
 .profile-list > div { display: flex; flex-direction: column; gap: 2px; }
 .profile-list dt { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--charcoal); }

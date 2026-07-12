@@ -14,18 +14,13 @@ export function StudentVerify() {
   const [stage, setStage] = useState("start"); // start | token | done
   const [accountEmail, setAccountEmail] = useState("");
   const [token, setToken] = useState("");
-  const [domains, setDomains] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
     (async () => {
-      const [{ data: domainRows }, { data: userData }] = await Promise.all([
-        supabase.from("student_email_domains").select("domain").eq("is_active", true),
-        supabase.auth.getUser()
-      ]);
-      setDomains((domainRows ?? []).map((d) => d.domain));
+      const { data: userData } = await supabase.auth.getUser();
       setAccountEmail(userData?.user?.email ?? "");
     })();
   }, [supabase]);
@@ -83,7 +78,6 @@ export function StudentVerify() {
       <p className="form-hint" style={{ marginBottom: 12 }}>
         We'll send a verification code to your account email
         {accountEmail ? <> (<strong>{accountEmail}</strong>)</> : ""}. Verify once to unlock student pricing.
-        {domains.length > 0 && <> Approved university domains: {domains.join(", ")}.</>}
       </p>
       {error && <div className="account-note account-note--err">{error}</div>}
       {note && <div className="account-note account-note--ok">{note}</div>}

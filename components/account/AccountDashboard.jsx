@@ -158,7 +158,10 @@ export function AccountDashboard({ profile, orders, stats }) {
           {error && <div className="account-note account-note--err">{error}</div>}
 
           {profile.studentVerified ? (
-            <div className="student-badge">Verified student{profile.studentEmail ? ` · ${profile.studentEmail}` : ""}</div>
+            <div className="student-verified">
+              <span className="student-badge">Verified student{profile.studentEmail ? ` · ${profile.studentEmail}` : ""}</span>
+              <p className="student-verified__promo">Use code <strong>STUDENT10</strong> at checkout for <strong>10% off</strong>.</p>
+            </div>
           ) : (
             <StudentVerify />
           )}

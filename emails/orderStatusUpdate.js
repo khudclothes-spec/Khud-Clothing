@@ -30,13 +30,13 @@ export const STATUS_COPY = {
     label: "Processing",
     color: c.brass,
     title: "Your order is being prepared",
-    body: "We're getting your order ready — our studio is preparing your pieces for production."
+    body: "We're getting your order ready, our studio is preparing your pieces for production."
   },
   printing: {
     label: "Printing",
     color: c.clay,
     title: "Your order is being printed",
-    body: "Good news — your pieces are now in production. Our studio is printing and finishing your order."
+    body: "Good news, your pieces are now in production. Our studio is printing and finishing your order."
   },
   packed: {
     label: "Packed",
@@ -54,7 +54,7 @@ export const STATUS_COPY = {
     label: "Delivered",
     color: c.olive,
     title: "Your order has been delivered",
-    body: "Your order has been marked delivered. We hope you love it — wear it well."
+    body: "Your order has been marked delivered. We hope you love it, wear it well."
   },
   cancelled: {
     label: "Cancelled",

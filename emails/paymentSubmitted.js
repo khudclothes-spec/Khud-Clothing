@@ -9,8 +9,8 @@ const c = brand.colors;
 
 export function renderPaymentSubmittedCustomer(order) {
   const content = `
-    ${eyebrow("Payment received")}
-    ${heading(`Thanks, ${order.customerFirstName || "there"} — we've got your payment proof.`)}
+    ${eyebrow("Payment proof received")}
+    ${heading(`Thanks, ${order.customerFirstName || "there"}, we've got your payment proof.`)}
     ${paragraph(
       `We're verifying your bank transfer for order <strong>${escapeHtml(order.orderNumber)}</strong>. You'll get another email as soon as it's approved and your order moves into production.`,
       { muted: true }
@@ -30,8 +30,8 @@ export function renderPaymentSubmittedCustomer(order) {
     ${paragraph(`Questions? Email <a href="mailto:${escapeHtml(contact.supportEmail)}" style="color:${c.clay};text-decoration:none;">${escapeHtml(contact.supportEmail)}</a>.`, { muted: true })}
   `;
   return emailLayout({
-    title: `Payment received ${order.orderNumber}`,
-    preheader: `We're verifying your payment for ${order.orderNumber}.`,
+    title: `Payment proof received ${order.orderNumber}`,
+    preheader: `We're verifying your payment proof for ${order.orderNumber}.`,
     contentHtml: content
   });
 }
