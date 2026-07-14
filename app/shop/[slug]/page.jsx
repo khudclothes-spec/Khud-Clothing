@@ -4,7 +4,7 @@ import { createPublicClient } from "@/lib/supabase-server";
 import { mapDbProduct } from "@/lib/mapDbProduct";
 import { CategoryShop } from "@/components/CategoryShop";
 import { JsonLd } from "@/components/JsonLd";
-import { breadcrumbSchema } from "@/lib/seo";
+import { breadcrumbSchema, OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }) {
         title: `${cat.name} — Khud`,
         description,
         alternates: { canonical: `/shop/${slug}` },
-        openGraph: { url: `/shop/${slug}`, title: `${cat.name} — Khud`, description }
+        openGraph: { url: `/shop/${slug}`, type: "website", title: `${cat.name} — Khud`, description, images: [OG_IMAGE] }
       };
     }
   } catch {

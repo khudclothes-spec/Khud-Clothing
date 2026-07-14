@@ -1,13 +1,13 @@
 import { Reveal } from "@/components/Reveal";
 import { fitCards, measureTips, sizeRows } from "@/lib/data";
 import { JsonLd } from "@/components/JsonLd";
-import { faqSchema } from "@/lib/seo";
+import { faqSchema, OG_IMAGE } from "@/lib/seo";
 
 export const metadata = {
   title: "Size Guide",
   description: "Khud size guide — all measurements in inches, laid flat. Our tees and hoodies run oversized by design; size down for a regular fit.",
   alternates: { canonical: "/size-guide" },
-  openGraph: { url: "/size-guide", title: "Size Guide — Khud", description: "Find your fit — Khud tees and hoodies run oversized by design." }
+  openGraph: { url: "/size-guide", type: "website", title: "Size Guide — Khud", description: "Find your fit — Khud tees and hoodies run oversized by design.", images: [OG_IMAGE] }
 };
 
 // Sizing FAQ, grounded in the guidance shown on this page.

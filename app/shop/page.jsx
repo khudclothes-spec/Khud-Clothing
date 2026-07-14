@@ -5,6 +5,7 @@ import { TeeGraphic } from "@/components/TeeGraphic";
 import { Reveal } from "@/components/Reveal";
 import { COLORS, categories as localCategories } from "@/lib/data";
 import { createPublicClient } from "@/lib/supabase-server";
+import { OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -12,7 +13,7 @@ export const metadata = {
   title: "Shop by Category",
   description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints.",
   alternates: { canonical: "/shop" },
-  openGraph: { url: "/shop", title: "Shop by Category — Khud", description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints." }
+  openGraph: { url: "/shop", type: "website", title: "Shop by Category — Khud", description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints.", images: [OG_IMAGE] }
 };
 
 const FILLS = [COLORS.ink, COLORS.charcoal, COLORS.olive, COLORS.clay, COLORS.brass, COLORS.terra];

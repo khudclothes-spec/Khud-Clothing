@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartContext";
 import { createClient } from "@/lib/supabase";
 import { formatPrice } from "@/lib/data";
-import { PAYMENT_METHODS, orderTotals, SHIPPING_FLAT, FREE_SHIPPING_MIN_ITEMS, FREE_SHIPPING_MIN_SUBTOTAL } from "@/lib/pricing";
+import { PAYMENT_METHODS, orderTotals, SHIPPING_FLAT, FREE_SHIPPING_OVER } from "@/lib/pricing";
 import { OrderComplete } from "@/components/checkout/OrderComplete";
 
 export function CheckoutClient({ initial }) {
@@ -47,11 +47,10 @@ export function CheckoutClient({ initial }) {
   const totals = useMemo(
     () => orderTotals({
       subtotal: subtotalNumber,
-      itemCount: cartCount,
       paymentMethod,
       promoDiscount: appliedPromo?.amount || 0
     }),
-    [subtotalNumber, cartCount, paymentMethod, appliedPromo]
+    [subtotalNumber, paymentMethod, appliedPromo]
   );
 
   function set(field, value) { setForm((p) => ({ ...p, [field]: value })); }
@@ -289,7 +288,7 @@ export function CheckoutClient({ initial }) {
               <span className="ship-method__label">Standard — nationwide</span>
               <span className="ship-method__price">{totals.freeShipping ? "Free" : formatPrice(SHIPPING_FLAT)}</span>
             </div>
-            <p className="checkout-hint">Free shipping on {FREE_SHIPPING_MIN_ITEMS}+ items over {formatPrice(FREE_SHIPPING_MIN_SUBTOTAL)}.</p>
+            <p className="checkout-hint">Free shipping on orders over {formatPrice(FREE_SHIPPING_OVER)}.</p>
           </section>
 
           {/* Payment */}

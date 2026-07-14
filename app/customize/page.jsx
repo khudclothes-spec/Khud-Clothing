@@ -1,10 +1,11 @@
 import { CustomStudio } from "@/components/CustomStudio";
+import { OG_IMAGE } from "@/lib/seo";
 
 export const metadata = {
   title: "Customize",
   description: "Design your own apparel in the Khud Custom Studio — add text and artwork to any printable area, approve your proof, and add it to your bag.",
   alternates: { canonical: "/customize" },
-  openGraph: { url: "/customize", title: "The Custom Studio — Khud", description: "Design your own apparel — add text and artwork, approve your proof, and order." }
+  openGraph: { url: "/customize", type: "website", title: "The Custom Studio — Khud", description: "Design your own apparel — add text and artwork, approve your proof, and order.", images: [OG_IMAGE] }
 };
 
 export default function CustomizePage() {

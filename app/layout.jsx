@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { SiteShell } from "@/components/SiteShell";
 import { SessionMonitor } from "@/components/SessionMonitor";
 import { JsonLd } from "@/components/JsonLd";
@@ -24,8 +25,10 @@ export const metadata = {
   alternates: { canonical: "/" },
   // Google Search Console ownership verification (HTML-tag method).
   verification: { google: "3DKm9LjZtk659Q17a7CmXsadSI3L6CsJf02Ey5W9mpU" },
-  // Favicon links are declared manually in <head> below so they can be
-  // theme-aware (white wordmark on dark tabs, black on light tabs).
+  // Favicons, apple-touch-icon, and og/twitter images come from the app/
+  // file conventions (favicon.ico, icon.png, apple-icon.png,
+  // opengraph-image.png, twitter-image.png) — white-background wordmark so
+  // it stays legible in Google Search results and social link previews.
   openGraph: {
     title: "Khud — Wear Your Imprint",
     description: SITE_DESCRIPTION,
@@ -62,13 +65,6 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;0,6..96,800;1,6..96,400;1,6..96,500&family=Hanken+Grotesk:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-        {/* Favicon = the Khud wordmark. Default is the BLACK version so it stays
-            legible on light/white backgrounds — including Google search results,
-            which always render the favicon on white. It auto-switches to the
-            white version only on dark browser themes. */}
-        <link rel="icon" type="image/png" href="/images/logo-black-writing.png" />
-        <link rel="icon" type="image/png" media="(prefers-color-scheme: dark)" href="/images/logo-white-writing.png" />
-        <link rel="apple-touch-icon" href="/images/logo-black-writing.png" />
       </head>
       <body>
         {/* Site-wide structured data: who we are + the site itself. */}
@@ -76,6 +72,9 @@ export default function RootLayout({ children }) {
         <JsonLd data={websiteSchema()} />
         <SessionMonitor />
         <SiteShell>{children}</SiteShell>
+        {/* Vercel Analytics — cookieless page-view counting; only collects on
+            Vercel deployments (no-op in local dev). */}
+        <Analytics />
       </body>
     </html>
   );

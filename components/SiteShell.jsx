@@ -9,7 +9,7 @@ import { ArrowRight, Bag, Close, Menu, ChevronDown, User, LogOut, Dashboard } fr
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { navLinks, formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
-import { freeShippingRemaining, FREE_SHIPPING_MIN_ITEMS, FREE_SHIPPING_MIN_SUBTOTAL } from "@/lib/pricing";
+import { freeShippingRemaining, FREE_SHIPPING_OVER } from "@/lib/pricing";
 
 const blackLogo = "/images/logo-black-writing.png";
 const whiteLogo = "/images/logo-white-writing.png";
@@ -191,7 +191,7 @@ function ShellChrome({ children }) {
             <span key={index} style={{ display: "inline-flex", gap: 52 }}>
               <span>Drop 01 / Summer '26</span>
               <span className="announcement__spark">*</span>
-              <span>Free Shipping on {FREE_SHIPPING_MIN_ITEMS}+ Items Over {formatPrice(FREE_SHIPPING_MIN_SUBTOTAL)}</span>
+              <span>Free Shipping on Orders Over {formatPrice(FREE_SHIPPING_OVER)}</span>
               <span className="announcement__spark">*</span>
               <span>Custom Orders Open</span>
               <span className="announcement__spark">*</span>
@@ -484,8 +484,8 @@ function FooterColumn({ title, links, handleLink }) {
 
 function CartDrawer({ navigate, authUser }) {
   const { cart, cartCount, subtotal, subtotalNumber, cartOpen, closeCart, changeQty, removeItem } = useCart();
-  const rem = freeShippingRemaining(cartCount, subtotalNumber);
-  const freeShip = rem.items === 0 && rem.amount === 0;
+  const rem = freeShippingRemaining(subtotalNumber);
+  const freeShip = rem.amount === 0;
 
   if (!cartOpen) return null;
 
@@ -573,10 +573,6 @@ function CartDrawer({ navigate, authUser }) {
               <div className={`ship-hint ${freeShip ? "ship-hint--unlocked" : ""}`}>
                 {freeShip
                   ? "Free shipping unlocked"
-                  : rem.items > 0 && rem.amount > 0
-                  ? `Add ${rem.items} more item${rem.items !== 1 ? "s" : ""} & ${formatPrice(rem.amount)} for free shipping`
-                  : rem.items > 0
-                  ? `Add ${rem.items} more item${rem.items !== 1 ? "s" : ""} for free shipping`
                   : `Add ${formatPrice(rem.amount)} more for free shipping`}
               </div>
               <button

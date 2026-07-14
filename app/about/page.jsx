@@ -2,12 +2,13 @@ import Link from "next/link";
 import { ArrowRight, Check } from "@/components/Icons";
 import { Reveal } from "@/components/Reveal";
 import { aboutBlocks, promises } from "@/lib/data";
+import { OG_IMAGE } from "@/lib/seo";
 
 export const metadata = {
   title: "About Khud",
   description: "Khud takes its name from the Urdu word for yourself. We build premium clothing and a custom-print studio around a single idea — what you wear should carry who you are.",
   alternates: { canonical: "/about" },
-  openGraph: { url: "/about", title: "About Khud", description: "The story behind Khud — premium clothing built around the idea of yourself." }
+  openGraph: { url: "/about", type: "website", title: "About Khud", description: "The story behind Khud — premium clothing built around the idea of yourself.", images: [OG_IMAGE] }
 };
 
 export default function AboutPage() {

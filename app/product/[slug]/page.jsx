@@ -3,7 +3,7 @@ import { createPublicClient } from "@/lib/supabase-server";
 import { ProductDetail } from "@/components/ProductDetail";
 import { productPricing } from "@/lib/pricing";
 import { JsonLd } from "@/components/JsonLd";
-import { productSchema, breadcrumbSchema, absoluteUrl } from "@/lib/seo";
+import { productSchema, breadcrumbSchema, absoluteUrl, OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -43,9 +43,11 @@ export async function generateMetadata({ params }) {
         alternates: { canonical: `/product/${slug}` },
         openGraph: {
           url: `/product/${slug}`,
+          type: "website",
           title: `${data.name} — Khud`,
           description,
-          ...(image ? { images: [{ url: image, alt: data.name }] } : {})
+          // Product photo when available; brand OG image as the fallback.
+          images: image ? [{ url: image, alt: data.name }] : [OG_IMAGE]
         }
       };
     }

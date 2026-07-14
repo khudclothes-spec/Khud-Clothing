@@ -11,10 +11,12 @@ export default function manifest() {
     display: "standalone",
     background_color: "#F4EFE6",
     theme_color: "#11100E",
-    // Splash/background is the light bone colour, so the black wordmark stays
-    // legible against it.
+    // White-square wordmark icons — same artwork as the favicon set, with
+    // enough padding to survive maskable cropping on Android.
     icons: [
-      { src: "/images/logo-black-writing.png", sizes: "500x500", type: "image/png", purpose: "any" }
+      { src: "/images/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/images/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/images/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
     ]
   };
 }
