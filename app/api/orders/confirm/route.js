@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createServerClient, createAdminClient } from "@/lib/supabase-server";
 import { sendCustomerOrderConfirmation, sendOwnerNewOrderEmails } from "@/lib/email/orders";
 
+// Reads live order state and stamps idempotency flags — must never be cached.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const ORDER_SELECT =
   "id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, promo_code, tax, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, profile_id, confirmation_sent_at, owner_notified_at, order_items(id, quantity, unit_price, size, color, products(name))";
 

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { sendPaymentSubmittedEmails } from "@/lib/email/orders";
 
+// Reads live order state right after submit_payment_proof() writes it — must
+// never be cached.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const ORDER_SELECT =
   "id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, tax, total_amount, payment_method, customer_name, customer_email, created_at, profile_id, order_items(id, quantity, unit_price, size, color, products(name))";
 

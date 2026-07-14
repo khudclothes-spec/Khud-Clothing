@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerClient, createAdminClient } from "@/lib/supabase-server";
 
+// Mutates order status that /api/orders/notify immediately re-reads — must
+// never be cached.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const ALLOWED = [
   "pending", "pending_payment", "pending_verification", "payment_received",
   "confirmed", "processing", "printing", "ready", "packed", "shipped", "delivered", "cancelled"

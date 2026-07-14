@@ -3,6 +3,13 @@ import { createServerClient, createAdminClient } from "@/lib/supabase-server";
 import { sendOrderStatusEmail, sendPaymentStatusEmail } from "@/lib/email/orders";
 import { shouldEmailStatus } from "@/emails/orderStatusUpdate";
 
+// This route decides what to email from the order's CURRENT DB state — it must
+// never be served from a cache (Next.js can otherwise cache route handler
+// fetches), or "Send Email" can act on a stale status right after an admin
+// approval/status change.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const ORDER_SELECT =
   "id, order_number, status, subtotal, shipping_cost, discount_amount, promo_discount, promo_code, tax, payment_method, total_amount, customer_name, customer_phone, customer_email, shipping_address, city, notes, created_at, order_items(id, quantity, unit_price, size, color, products(name)), payment_verifications(payment_status, admin_notes)";
 

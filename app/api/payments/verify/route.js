@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerClient, createAdminClient } from "@/lib/supabase-server";
 
+// Mutates order/payment state that other routes immediately re-read
+// (POST /api/orders/notify) — must never be cached.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 // Admin-only. Approves or rejects a manual bank-transfer payment:
 //   approve → payment_verifications.approved + order 'confirmed'
 //   reject  → payment_verifications.rejected + order back to 'pending_payment'
