@@ -6526,6 +6526,17 @@ svg {
 .admin-notify__actions { display: flex; gap: 10px; flex-shrink: 0; }
 .admin-notify--error { background: var(--clay, #a94732); bottom: 92px; }
 .admin-notify--error .admin-notify__msg { color: #fff; }
+/* .button--outline is tuned for light page backgrounds (dark text, light
+   border) — inside this dark/clay toast that's dark-on-dark, invisible
+   until hover. Restyle it light here so Skip/Close/Dismiss stay visible. */
+.admin-notify .button--outline {
+  color: var(--bone, #f4efe6);
+  border-color: rgba(244, 239, 230, 0.5);
+}
+.admin-notify .button--outline:hover {
+  color: var(--brass, #b99149);
+  border-color: var(--brass, #b99149);
+}
 @media (max-width: 560px) {
   .admin-notify { left: 16px; right: 16px; transform: none; max-width: none; }
 }

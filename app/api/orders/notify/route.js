@@ -48,17 +48,20 @@ export async function POST(request) {
   try {
     if (shouldEmailStatus(order.status)) {
       const res = await sendOrderStatusEmail(order, order.status);
-      return NextResponse.json({ ok: true, emailed: !res?.skipped, kind: "status", status: order.status });
+      return NextResponse.json({ ok: true, emailed: !res?.skipped, kind: "status", status: order.status, reason: res?.skipped ? (order.customer_email ? "no_api_key" : "no_customer_email") : undefined });
     }
     if (pv?.payment_status === "rejected") {
       const res = await sendPaymentStatusEmail(order, "rejected", pv.admin_notes || "");
-      return NextResponse.json({ ok: true, emailed: !res?.skipped, kind: "payment_rejected" });
+      return NextResponse.json({ ok: true, emailed: !res?.skipped, kind: "payment_rejected", reason: res?.skipped ? (order.customer_email ? "no_api_key" : "no_customer_email") : undefined });
     }
     // No customer-facing template for this state (e.g. pending_payment /
     // pending_verification) — nothing to send.
     return NextResponse.json({ ok: true, emailed: false, skipped: "no_template", status: order.status });
   } catch (err) {
+    // Admin-only route — safe (and, for a delivery failure like a Resend
+    // rejection or unverified sending domain, essential) to surface the
+    // real provider error instead of a generic message.
     console.error("[api/orders/notify] email failed", err);
-    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Failed to send email" }, { status: 500 });
   }
 }

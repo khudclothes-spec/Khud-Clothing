@@ -46,12 +46,15 @@ export default function AdminOrdersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: notify.orderId })
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setNotify((n) => ({ ...n, sending: false, result: data.emailed ? "sent" : "none" }));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+      setNotify((n) => ({ ...n, sending: false, result: data.emailed ? "sent" : "none", reason: data.reason || data.skipped }));
     } catch (err) {
+      // Admin-only surface — show the real provider/reason so a delivery
+      // failure (e.g. an unverified sending domain, or Resend rejecting the
+      // recipient) is diagnosable without digging through server logs.
       console.error("[admin] notify failed", err);
-      setNotify((n) => ({ ...n, sending: false, result: "error" }));
+      setNotify((n) => ({ ...n, sending: false, result: "error", errorMessage: err.message }));
     }
   }
 
@@ -255,8 +258,12 @@ export default function AdminOrdersPage() {
                 {notify.result === "sent"
                   ? `Email sent to the customer for ${notify.orderNumber}.`
                   : notify.result === "none"
-                  ? `No email sent — the customer may have no email on file, or email delivery isn't configured yet.`
-                  : `Couldn't send the email. Please try again.`}
+                  ? notify.reason === "no_customer_email"
+                    ? `No email sent — this order has no customer email on file.`
+                    : notify.reason === "no_api_key"
+                    ? `No email sent — email delivery isn't configured on this deployment (RESEND_API_KEY missing).`
+                    : `No email to send — ${notify.orderNumber}'s current status has no customer-facing template.`
+                  : `Couldn't send the email${notify.errorMessage ? `: ${notify.errorMessage}` : ". Please try again."}`}
               </span>
               <button type="button" className="button button--outline button--sm" onClick={() => setNotify(null)}>Close</button>
             </div>
@@ -266,7 +273,7 @@ export default function AdminOrdersPage() {
                 <strong>Status updated.</strong> {notify.orderNumber} → {notify.label}. Notify the customer about this change?
               </span>
               <div className="admin-notify__actions">
-                <button type="button" className="button button--dark button--sm" disabled={notify.sending} onClick={sendNotify}>
+                <button type="button" className="button button--light button--sm" disabled={notify.sending} onClick={sendNotify}>
                   {notify.sending ? "Sending…" : "Send Email"}
                 </button>
                 <button type="button" className="button button--outline button--sm" disabled={notify.sending} onClick={() => setNotify(null)}>
