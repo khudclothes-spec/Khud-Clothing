@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartContext";
@@ -8,6 +8,11 @@ import { createClient } from "@/lib/supabase";
 import { formatPrice } from "@/lib/data";
 import { PAYMENT_METHODS, orderTotals, SHIPPING_FLAT, FREE_SHIPPING_OVER } from "@/lib/pricing";
 import { OrderComplete } from "@/components/checkout/OrderComplete";
+import { StudentStatusCTA } from "@/components/StudentStatusCTA";
+
+// Persists the half-filled checkout to the browser so leaving the page (e.g. to
+// verify student status on the account page) and coming back doesn't lose it.
+const DRAFT_KEY = "khud:checkout-draft";
 
 export function CheckoutClient({ initial }) {
   const router = useRouter();
@@ -44,6 +49,38 @@ export function CheckoutClient({ initial }) {
   // screen (which offers "view order" vs "back to home").
   const [completed, setCompleted] = useState(null);
 
+  // ---- Draft persistence (survives a redirect to /account and back) ----
+  // Load once on mount, then re-save on every change. draftLoaded gates the save
+  // effect so we never overwrite the stored draft with the initial blank state.
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        // Email always stays the authoritative account email, never the draft's.
+        if (d.form) setForm((p) => ({ ...p, ...d.form, email: p.email }));
+        if (d.billing) setBilling(d.billing);
+        if (typeof d.billingSame === "boolean") setBillingSame(d.billingSame);
+        if (d.paymentMethod) setPaymentMethod(d.paymentMethod);
+        if (d.promoInput) setPromoInput(d.promoInput);
+        if (d.appliedPromo) setAppliedPromo(d.appliedPromo);
+      }
+    } catch { /* ignore malformed draft */ }
+    setDraftLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoaded) return;
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ form, billing, billingSame, paymentMethod, promoInput, appliedPromo })
+      );
+    } catch { /* storage full / unavailable — non-fatal */ }
+  }, [form, billing, billingSame, paymentMethod, promoInput, appliedPromo, draftLoaded]);
+
   const totals = useMemo(
     () => orderTotals({
       subtotal: subtotalNumber,
@@ -68,7 +105,14 @@ export function CheckoutClient({ initial }) {
       });
       if (rpcErr) throw new Error(rpcErr.message);
       if (data?.valid) {
-        setAppliedPromo({ code: data.code, amount: Number(data.discount_amount) || 0, message: data.message });
+        setAppliedPromo({
+          code: data.code,
+          amount: Number(data.discount_amount) || 0,
+          message: data.message,
+          minSubtotal: Number(data.min_subtotal) || 0,
+          maxUses: data.max_uses ?? null,
+          usesRemaining: data.uses_remaining ?? null
+        });
         setPromoError("");
       } else {
         setAppliedPromo(null);
@@ -103,6 +147,9 @@ export function CheckoutClient({ initial }) {
         ...billing
       };
       const result = await placeOrder(payload);
+
+      // Order placed — drop the saved draft so a fresh checkout starts clean.
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* non-fatal */ }
 
       // Save the (possibly edited) contact + address back to the profile for
       // next time. Never fatal to the placed order.
@@ -338,13 +385,33 @@ export function CheckoutClient({ initial }) {
             ))}
           </div>
 
+          {/* Student status — shown right by the promo box so shoppers know
+              whether they can use a student code (and can go verify if not). */}
+          <StudentStatusCTA variant="cart" />
+
           {/* Promo */}
           <div className="checkout-promo">
             {appliedPromo ? (
-              <div className="checkout-promo__applied">
-                <span><strong>{appliedPromo.code}</strong> applied</span>
-                <button type="button" onClick={removePromo} className="checkout-promo__remove">Remove</button>
-              </div>
+              <>
+                <div className="checkout-promo__applied">
+                  <span><strong>{appliedPromo.code}</strong> applied</span>
+                  <button type="button" onClick={removePromo} className="checkout-promo__remove">Remove</button>
+                </div>
+                <div className="checkout-promo__meta">
+                  {appliedPromo.minSubtotal > 0 && (
+                    <span className="checkout-promo__chip">Min order {formatPrice(appliedPromo.minSubtotal)} · met</span>
+                  )}
+                  {appliedPromo.maxUses != null ? (
+                    <span className="checkout-promo__chip">
+                      {appliedPromo.usesRemaining > 0
+                        ? `Order limit not reached · ${appliedPromo.usesRemaining} of ${appliedPromo.maxUses} left`
+                        : "Usage limit reached"}
+                    </span>
+                  ) : (
+                    <span className="checkout-promo__chip">No usage limit</span>
+                  )}
+                </div>
+              </>
             ) : (
               <div className="checkout-promo__row">
                 <input

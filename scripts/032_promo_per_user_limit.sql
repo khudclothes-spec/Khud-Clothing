@@ -63,6 +63,7 @@ DECLARE
   v_student   BOOLEAN := FALSE;
   v_amount    NUMERIC(10,2) := 0;
   v_used      INTEGER := 0;
+  v_remaining INTEGER := NULL;   -- NULL = unlimited
   v_code      TEXT := upper(trim(COALESCE(p_code, '')));
 BEGIN
   IF v_code = '' THEN
@@ -77,30 +78,50 @@ BEGIN
     RETURN jsonb_build_object('valid', false, 'message', 'This code has expired.');
   END IF;
 
-  -- Per-user usage cap. Only enforceable for a signed-in user; guests can still
-  -- preview validity, and the real cap is re-checked at checkout (auth-only).
-  IF v_row.max_uses IS NOT NULL AND v_uid IS NOT NULL THEN
+  -- This user's prior redemptions — used for the per-user cap AND surfaced to the
+  -- UI (uses_remaining) so checkout can show "order limit not reached", etc.
+  IF v_uid IS NOT NULL THEN
     SELECT COUNT(*) INTO v_used
       FROM promo_code_redemptions
      WHERE promo_code_id = v_row.id AND profile_id = v_uid;
-    IF v_used >= v_row.max_uses THEN
-      RETURN jsonb_build_object('valid', false,
-        'message', 'You have already used this code the maximum number of times.');
-    END IF;
+  END IF;
+  IF v_row.max_uses IS NOT NULL THEN
+    v_remaining := GREATEST(v_row.max_uses - v_used, 0);
+  END IF;
+
+  -- Per-user usage cap. Only enforceable for a signed-in user; guests still
+  -- preview validity and the real cap is re-checked at checkout (auth-only).
+  IF v_row.max_uses IS NOT NULL AND v_uid IS NOT NULL AND v_used >= v_row.max_uses THEN
+    RETURN jsonb_build_object('valid', false,
+      'code', v_row.code,
+      'min_subtotal', v_row.min_subtotal,
+      'max_uses', v_row.max_uses,
+      'uses_remaining', 0,
+      'message', 'You have already used this code the maximum number of times.');
   END IF;
 
   IF COALESCE(p_subtotal, 0) < v_row.min_subtotal THEN
     RETURN jsonb_build_object('valid', false,
-      'message', 'Order does not meet the minimum for this code.');
+      'code', v_row.code,
+      'min_subtotal', v_row.min_subtotal,
+      'max_uses', v_row.max_uses,
+      'uses_remaining', v_remaining,
+      'message', 'This code needs a minimum order of Rs ' ||
+                 trim(to_char(v_row.min_subtotal, 'FM999999990')) || '.');
   END IF;
 
   IF v_row.requires_student OR v_row.discount_type = 'student' THEN
     IF v_uid IS NULL THEN
-      RETURN jsonb_build_object('valid', false, 'message', 'Sign in to use this code.');
+      RETURN jsonb_build_object('valid', false, 'requires_student', true,
+        'message', 'Sign in to use this code.');
     END IF;
     SELECT student_verified INTO v_student FROM profiles WHERE id = v_uid;
     IF NOT COALESCE(v_student, false) THEN
       RETURN jsonb_build_object('valid', false, 'requires_student', true,
+        'code', v_row.code,
+        'min_subtotal', v_row.min_subtotal,
+        'max_uses', v_row.max_uses,
+        'uses_remaining', v_remaining,
         'message', 'This code is for verified students only.');
     END IF;
   END IF;
@@ -117,6 +138,9 @@ BEGIN
     'discount_type', v_row.discount_type,
     'discount_value', v_row.discount_value,
     'discount_amount', v_amount,
+    'min_subtotal', v_row.min_subtotal,
+    'max_uses', v_row.max_uses,
+    'uses_remaining', v_remaining,
     'requires_student', v_row.requires_student OR v_row.discount_type = 'student',
     'message', 'Code applied.'
   );

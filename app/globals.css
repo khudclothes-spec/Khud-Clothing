@@ -6510,6 +6510,19 @@ svg {
 .checkout-promo__applied { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--ink); }
 .checkout-promo__remove { background: none; border: none; color: var(--clay); font-size: 12px; text-decoration: underline; cursor: pointer; }
 .checkout-promo__error { margin-top: 8px; font-size: 12px; color: var(--clay); }
+.checkout-promo__meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.checkout-promo__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--bone);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--charcoal);
+}
 
 .checkout-totals { display: grid; gap: 7px; margin-bottom: 18px; }
 .checkout-total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--charcoal); }
