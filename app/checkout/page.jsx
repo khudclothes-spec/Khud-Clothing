@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase-server";
 import { CheckoutClient } from "@/components/checkout/CheckoutClient";
 
-export const metadata = { title: "Checkout — Khud", robots: "noindex" };
+export const metadata = { title: "Checkout", robots: "noindex" };
 
 // Auth-gated dedicated checkout. Not signed in → login, then straight back here
 // (the cart persists across the round trip via CartProvider localStorage).

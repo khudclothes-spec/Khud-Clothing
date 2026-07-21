@@ -11,9 +11,9 @@ export const revalidate = 60;
 
 export const metadata = {
   title: "Shop by Category",
-  description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints.",
+  description: "Browse Char Meem Clothing by category — oversized tees, hoodies, sweatshirts and custom prints.",
   alternates: { canonical: "/shop" },
-  openGraph: { url: "/shop", type: "website", title: "Shop by Category — Khud", description: "Browse Khud by category — oversized tees, hoodies, sweatshirts and custom prints.", images: [OG_IMAGE] }
+  openGraph: { url: "/shop", type: "website", title: "Shop by Category — Char Meem Clothing", description: "Browse Char Meem Clothing by category — oversized tees, hoodies, sweatshirts and custom prints.", images: [OG_IMAGE] }
 };
 
 const FILLS = [COLORS.ink, COLORS.charcoal, COLORS.olive, COLORS.clay, COLORS.brass, COLORS.terra];

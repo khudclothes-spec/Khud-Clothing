@@ -58,7 +58,7 @@ export function renderCustomerOrderConfirmation(order) {
   `;
 
   return emailLayout({
-    title: `Your Khud order ${order.orderNumber}`,
+    title: `Your Char Meem Clothing order ${order.orderNumber}`,
     preheader: `Thanks for your order ${order.orderNumber}. Total ${order.totalFormatted}.`,
     contentHtml: content
   });

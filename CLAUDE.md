@@ -1,4 +1,4 @@
-# Khud — Project Instructions
+# Char Meem Clothing (formerly Khud) — Project Instructions
 
 ## Skills
 

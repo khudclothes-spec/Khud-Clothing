@@ -34,17 +34,17 @@ export async function generateMetadata({ params }) {
       .eq("status", "active")
       .maybeSingle();
     if (data) {
-      const description = data.short_description || `Shop ${data.name} at Khud.`;
+      const description = data.short_description || `Shop ${data.name} at Char Meem Clothing.`;
       const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images`;
       const image = primaryImageUrl(data.product_media, baseUrl);
       return {
-        title: `${data.name} — Khud`,
+        title: data.name,
         description,
         alternates: { canonical: `/product/${slug}` },
         openGraph: {
           url: `/product/${slug}`,
           type: "website",
-          title: `${data.name} — Khud`,
+          title: `${data.name} — Char Meem Clothing`,
           description,
           // Product photo when available; brand OG image as the fallback.
           images: image ? [{ url: image, alt: data.name }] : [OG_IMAGE]
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }) {
   } catch {
     // ignore — fall through to default
   }
-  return { title: "Product — Khud", alternates: { canonical: `/product/${slug}` } };
+  return { title: "Product", alternates: { canonical: `/product/${slug}` } };
 }
 
 export default async function ProductPage({ params }) {

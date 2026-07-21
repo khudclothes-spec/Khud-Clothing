@@ -41,7 +41,7 @@ export function AdminSidebar({ displayName }) {
 
       <aside className={`admin-sidebar ${open ? "is-open" : ""}`}>
         <div className="admin-sidebar__brand">
-          <img src="/images/logo-white-writing.png" alt="Khud" className="admin-logo" />
+          <img src="/images/charmeem-logo-gold.png" alt="Char Meem Clothing logo" className="admin-logo" />
         </div>
 
         <nav className="admin-sidebar__nav">

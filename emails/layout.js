@@ -1,5 +1,5 @@
-// The shared shell every Khud email renders inside: dark branded header with
-// the logo, a light content card, and a footer with contact placeholders.
+// The shared shell every Char Meem Clothing email renders inside: dark branded
+// header with the logo, a light content card, and a footer with contact placeholders.
 
 import { brand, contact } from "@/lib/email/config";
 import { escapeHtml } from "./components";

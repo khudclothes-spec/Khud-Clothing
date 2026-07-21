@@ -1,6 +1,6 @@
 # Inventory Management & Real-time Stock Sync
 
-How Khud prevents overselling and keeps stock consistent across concurrent shoppers,
+How Char Meem Clothing prevents overselling and keeps stock consistent across concurrent shoppers,
 and how product stock updates live without a page refresh.
 
 - **Stock lives on** `product_variants.stock_quantity` (one row per colour × size).

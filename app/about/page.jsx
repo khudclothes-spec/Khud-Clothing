@@ -5,21 +5,22 @@ import { aboutBlocks, promises } from "@/lib/data";
 import { OG_IMAGE } from "@/lib/seo";
 
 export const metadata = {
-  title: "About Khud",
-  description: "Khud takes its name from the Urdu word for yourself. We build premium clothing and a custom-print studio around a single idea — what you wear should carry who you are.",
+  title: "About",
+  description: "Char Meem Clothing is four founders and one shared initial. The name means four Ms. Intentional clothing in small runs, plus a custom studio for pieces that are only yours.",
   alternates: { canonical: "/about" },
-  openGraph: { url: "/about", type: "website", title: "About Khud", description: "The story behind Khud — premium clothing built around the idea of yourself.", images: [OG_IMAGE] }
+  openGraph: { url: "/about", type: "website", title: "About — Char Meem Clothing", description: "Four founders, one shared initial. The story behind Char Meem Clothing.", images: [OG_IMAGE] }
 };
 
 export default function AboutPage() {
   return (
     <main>
       <section className="container container--narrow about-hero" data-reveal>
-        <img src="/images/logo-black-writing.png" alt="Khud" />
-        <h1 className="display display--large">The mark you leave.</h1>
+        <img src="/images/charmeem-logo-black.png" alt="Char Meem Clothing logo — the 4م monogram" />
+        <h1 className="display display--large">Four names, one letter.</h1>
         <p>
-          Khud takes its name from the Urdu word for <strong>yourself</strong>. We build clothing around
-          that single idea: that what you wear should carry something of who you are.
+          Char Meem Clothing is four founders and one shared initial. Char meem means{" "}
+          <strong>four Ms</strong>: a headcount, not a slogan. We make intentional clothing in small
+          runs, and a custom studio where you can make a piece that is only yours.
         </p>
       </section>
 

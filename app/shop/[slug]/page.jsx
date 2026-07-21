@@ -25,18 +25,18 @@ export async function generateMetadata({ params }) {
       .eq("is_active", true)
       .maybeSingle();
     if (cat) {
-      const description = cat.description || `Shop ${cat.name} at Khud.`;
+      const description = cat.description || `Shop ${cat.name} at Char Meem Clothing.`;
       return {
-        title: `${cat.name} — Khud`,
+        title: cat.name,
         description,
         alternates: { canonical: `/shop/${slug}` },
-        openGraph: { url: `/shop/${slug}`, type: "website", title: `${cat.name} — Khud`, description, images: [OG_IMAGE] }
+        openGraph: { url: `/shop/${slug}`, type: "website", title: `${cat.name} — Char Meem Clothing`, description, images: [OG_IMAGE] }
       };
     }
   } catch {
     // ignore
   }
-  return { title: "Shop — Khud", alternates: { canonical: `/shop/${slug}` } };
+  return { title: "Shop", alternates: { canonical: `/shop/${slug}` } };
 }
 
 export default async function CategoryPage({ params }) {

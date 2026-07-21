@@ -3087,7 +3087,6 @@ svg {
 .admin-logo {
   height: 32px;
   width: auto;
-  filter: brightness(0) invert(1);
 }
 
 .admin-sidebar__nav {

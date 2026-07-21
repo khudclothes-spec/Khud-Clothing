@@ -8,29 +8,30 @@ import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, organizationSchema, websiteSchem
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Khud — Wear Your Imprint",
-    template: "%s — Khud"
+    default: "Char Meem Clothing — Wear Your Imprint",
+    template: "%s — Char Meem Clothing"
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: [
-    "Khud", "custom clothing Pakistan", "custom printed shirts", "custom t-shirts", "custom shirts",
+    "Char Meem Clothing", "Char Meem", "custom clothing Pakistan", "custom printed shirts", "custom t-shirts", "custom shirts",
     "custom shorts", "oversized tees", "hoodies", "sweatshirts", "streetwear Pakistan",
     "custom print studio", "personalised apparel", "design your own t-shirt", "printed clothing Pakistan"
   ],
-  authors: [{ name: "Khud Studio" }],
-  creator: "Khud",
-  publisher: "Khud",
+  authors: [{ name: "Char Meem Clothing" }],
+  creator: "Char Meem Clothing",
+  publisher: "Char Meem Clothing",
   manifest: "/manifest.webmanifest",
   alternates: { canonical: "/" },
   // Google Search Console ownership verification (HTML-tag method).
   verification: { google: "3DKm9LjZtk659Q17a7CmXsadSI3L6CsJf02Ey5W9mpU" },
   // Favicons, apple-touch-icon, and og/twitter images come from the app/
   // file conventions (favicon.ico, icon.png, apple-icon.png,
-  // opengraph-image.png, twitter-image.png) — white-background wordmark so
-  // it stays legible in Google Search results and social link previews.
+  // opengraph-image.jpg, twitter-image.jpg). Icons: black 4م monogram on
+  // white so it stays legible in browser tabs and Google Search results.
+  // OG/Twitter: gold wordmark on black for link previews (WhatsApp, X, etc.).
   openGraph: {
-    title: "Khud — Wear Your Imprint",
+    title: "Char Meem Clothing — Wear Your Imprint",
     description: SITE_DESCRIPTION,
     url: "/",
     siteName: SITE_NAME,
@@ -39,7 +40,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Khud — Wear Your Imprint",
+    title: "Char Meem Clothing — Wear Your Imprint",
     description: SITE_DESCRIPTION
   },
   robots: {

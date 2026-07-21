@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/supabase-server";
 import { AccountDashboard } from "@/components/account/AccountDashboard";
 
 export const metadata = {
-  title: "My Account — Khud",
+  title: "My Account",
   robots: "noindex"
 };
 

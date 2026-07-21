@@ -378,7 +378,7 @@ export function CheckoutClient({ initial }) {
             {placing ? "Placing order…" : `Place order · ${formatPrice(totals.total)}`}
           </button>
           <p className="checkout-hint checkout-hint--center">
-            By placing your order you agree to Khud's terms. {paymentMethod === "cod" ? "Pay in cash on delivery." : "Complete your bank transfer next."}
+            By placing your order you agree to Char Meem Clothing's terms. {paymentMethod === "cod" ? "Pay in cash on delivery." : "Complete your bank transfer next."}
           </p>
         </aside>
       </form>

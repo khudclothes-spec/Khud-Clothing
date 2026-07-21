@@ -5,14 +5,14 @@ import { faqSchema, OG_IMAGE } from "@/lib/seo";
 
 export const metadata = {
   title: "Size Guide",
-  description: "Khud size guide — all measurements in inches, laid flat. Our tees and hoodies run oversized by design; size down for a regular fit.",
+  description: "Char Meem Clothing size guide — all measurements in inches, laid flat. Our tees and hoodies run oversized by design; size down for a regular fit.",
   alternates: { canonical: "/size-guide" },
-  openGraph: { url: "/size-guide", type: "website", title: "Size Guide — Khud", description: "Find your fit — Khud tees and hoodies run oversized by design.", images: [OG_IMAGE] }
+  openGraph: { url: "/size-guide", type: "website", title: "Size Guide — Char Meem Clothing", description: "Find your fit — Char Meem tees and hoodies run oversized by design.", images: [OG_IMAGE] }
 };
 
 // Sizing FAQ, grounded in the guidance shown on this page.
 const SIZE_FAQS = [
-  { q: "Do Khud tees and hoodies run true to size?", a: "Khud tees and hoodies run oversized by design. If you prefer a regular fit, size down one." },
+  { q: "Do Char Meem tees and hoodies run true to size?", a: "Char Meem tees and hoodies run oversized by design. If you prefer a regular fit, size down one." },
   { q: "How are the size measurements taken?", a: "All measurements are given in inches, taken with the garment laid flat." },
   { q: "How do I choose the right size?", a: "Lay a t-shirt you already own and love flat, measure it, and compare it against our chart to find your best fit." }
 ];
@@ -25,7 +25,7 @@ export default function SizeGuidePage() {
         <div className="eyebrow">Fit and Sizing</div>
         <h1 className="display display--large">Size guide.</h1>
         <p style={{ maxWidth: 560, fontSize: 15.5, lineHeight: 1.6 }}>
-          All measurements in inches, laid flat. Khud tees and hoodies run{" "}
+          All measurements in inches, laid flat. Char Meem tees and hoodies run{" "}
           <strong style={{ color: "var(--ink)" }}>oversized</strong> by design. Size down for a regular fit.
         </p>
       </section>

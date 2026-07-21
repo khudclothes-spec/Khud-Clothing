@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase-server";
 import { PaymentPageClient } from "@/components/checkout/PaymentPageClient";
 
-export const metadata = { title: "Complete payment — Khud", robots: "noindex" };
+export const metadata = { title: "Complete payment", robots: "noindex" };
 
 export default async function PaymentPage({ params }) {
   const { id } = await params;

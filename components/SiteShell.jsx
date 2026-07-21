@@ -11,8 +11,10 @@ import { navLinks, formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
 import { freeShippingRemaining, FREE_SHIPPING_OVER } from "@/lib/pricing";
 
-const blackLogo = "/images/logo-black-writing.png";
-const whiteLogo = "/images/logo-white-writing.png";
+// Brand logos: black wordmark on light (bone/cream) surfaces, gold wordmark on
+// dark (ink) surfaces. Both are transparent PNGs of the 4م monogram + wordmark.
+const blackLogo = "/images/charmeem-logo-black.png";
+const goldLogo = "/images/charmeem-logo-gold.png";
 
 export function SiteShell({ children }) {
   return (
@@ -182,7 +184,7 @@ function ShellChrome({ children }) {
         <div className="pt-panel" />
         <div className="pt-panel" />
         <div className="pt-panel" />
-        <img src="/images/logo-white-writing.png" alt="Khud" className="pt-logo" />
+        <img src={goldLogo} alt="Char Meem Clothing logo" className="pt-logo" />
       </div>
 
       <div className="announcement" aria-label="Announcements">
@@ -215,8 +217,8 @@ function ShellChrome({ children }) {
             <Menu />
           </button>
 
-          <Link href="/" onClick={(event) => handleLink(event, "/")} className="logo-link" aria-label="Khud home">
-            <img src={blackLogo} alt="Khud" className="logo" />
+          <Link href="/" onClick={(event) => handleLink(event, "/")} className="logo-link" aria-label="Char Meem Clothing home">
+            <img src={blackLogo} alt="Char Meem Clothing logo" className="logo" />
           </Link>
 
           <div className="nav-actions">
@@ -259,7 +261,7 @@ function ShellChrome({ children }) {
           <button type="button" className="overlay" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
           <div className="mobile-menu__panel">
             <div className="mobile-menu__head">
-              <img src={blackLogo} alt="Khud" className="logo logo--small" />
+              <img src={blackLogo} alt="Char Meem Clothing logo" className="logo logo--small" />
             </div>
             <div className="mobile-menu__links">
               {navLinks.map((link) => (
@@ -428,7 +430,7 @@ function Footer({ handleLink, shopCategories = [] }) {
       <div className="container footer-inner">
         <div className="footer-grid">
           <div>
-            <img src={whiteLogo} alt="Khud" className="logo--footer" />
+            <img src={goldLogo} alt="Char Meem Clothing logo" className="logo--footer" />
             <p className="footer-copy">
               Premium ready-made clothing and a custom-print studio. Design yourself.
             </p>
@@ -456,7 +458,7 @@ function Footer({ handleLink, shopCategories = [] }) {
           </div>
         </div>
         <div className="footer-bottom">
-          <span>(c) 2026 Khud. All rights reserved.</span>
+          <span>(c) 2026 Char Meem Clothing. All rights reserved.</span>
           <span>Islamabad and nationwide shipping</span>
         </div>
       </div>

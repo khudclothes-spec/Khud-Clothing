@@ -9,7 +9,7 @@ import {
   timelineFor
 } from "@/lib/orders";
 
-export const metadata = { title: "Order details — Khud", robots: "noindex" };
+export const metadata = { title: "Order details", robots: "noindex" };
 
 function fmtDateTime(iso) {
   if (!iso) return "—";

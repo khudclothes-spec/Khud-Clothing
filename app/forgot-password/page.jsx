@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <img src="/images/logo-black-writing.png" alt="Khud" className="auth-logo" />
+          <img src="/images/charmeem-logo-black.png" alt="Char Meem Clothing logo" className="auth-logo" />
         </div>
 
         <h2 className="auth-heading">Reset Password</h2>

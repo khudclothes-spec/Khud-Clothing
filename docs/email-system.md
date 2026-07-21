@@ -1,6 +1,6 @@
-# Khud Email System
+# Char Meem Clothing Email System
 
-Production email for Khud, split into two independent channels:
+Production email for Char Meem Clothing, split into two independent channels:
 
 1. **Auth emails** — sent by **Supabase Auth** (signup verification, password reset). We only brand the templates and build the in-app verification UX.
 2. **Transactional order emails** — sent by **our server** via Resend: order confirmation (customer), owner notifications (×4), and order status updates.
@@ -77,11 +77,11 @@ Paste the branded templates into **Supabase Dashboard → Authentication → Ema
 
 | Supabase template | File | Subject |
 |-------------------|------|---------|
-| Confirm signup | [docs/supabase-email-templates/confirm-signup.html](supabase-email-templates/confirm-signup.html) | `Verify your email for Khud` |
-| Reset password | [docs/supabase-email-templates/reset-password.html](supabase-email-templates/reset-password.html) | `Reset your Khud password` |
+| Confirm signup | [docs/supabase-email-templates/confirm-signup.html](supabase-email-templates/confirm-signup.html) | `Verify your email for Char Meem Clothing` |
+| Reset password | [docs/supabase-email-templates/reset-password.html](supabase-email-templates/reset-password.html) | `Reset your Char Meem Clothing password` |
 
 Branding used across all emails:
-- **Logo**: white-writing logo on the dark (`#11100E`) header. (`{{ .SiteURL }}/images/logo-white-writing.png` in Supabase templates.)
+- **Logo**: gold wordmark logo on the dark (`#11100E`) header. (`{{ .SiteURL }}/images/charmeem-logo-gold.png` in Supabase templates.)
 - **Colours**: ink `#11100E`, clay accent `#A94732`, brass `#B99149`, olive `#6D745F`, bone `#F4EFE6`, cream `#FBF8F1`, line `#E7DFD1`.
 - **Voice**: warm, concise, no jargon. Sign-off "Wear your imprint."
 - **No references to Supabase** anywhere in the copy.
@@ -138,7 +138,7 @@ routed through `POST /api/orders/status` (admin-only), which updates
 | Variable | Purpose |
 |----------|---------|
 | `RESEND_API_KEY` | Resend API key. **If unset, order emails are skipped (logged)** so local checkout still works. |
-| `EMAIL_FROM` | From address, e.g. `Khud <orders@yourdomain.com>` (must be a verified sender/domain). |
+| `EMAIL_FROM` | From address, e.g. `Char Meem Clothing <orders@yourdomain.com>` (must be a verified sender/domain). |
 | `OWNER_EMAIL_1..4` | The four owner notification recipients. |
 | `SUPPORT_EMAIL` | Support email shown to customers. |
 | `WHATSAPP_NUMBER` | WhatsApp contact shown to customers. |

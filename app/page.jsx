@@ -18,7 +18,7 @@ const FEATURED_SELECT =
 export const revalidate = 60;
 
 export const metadata = {
-  title: "Khud — Wear Your Imprint",
+  title: { absolute: "Char Meem Clothing — Wear Your Imprint" },
   description: "Premium ready-made clothing and a custom-print studio. Design yourself.",
   alternates: { canonical: "/" },
   openGraph: { url: "/", type: "website" }
@@ -116,7 +116,7 @@ export default async function HomePage() {
               Build Your Own
             </Link>
           </div>
-          <div className="hero__stats" aria-label="Khud highlights">
+          <div className="hero__stats" aria-label="Char Meem Clothing highlights">
             <Stat value="100%" label="Heavy Cotton" />
             <span className="stat__rule" />
             <Stat value="5-7" label="Business Days Custom Print" />
@@ -130,7 +130,7 @@ export default async function HomePage() {
             <Link href={`/product/${heroProduct.slug}`} className="hero-visual__link">
               <div className="hero-visual__card">
                 <div className="hero-visual__watermark">
-                  <img src="/images/logo-black-writing.png" alt="" />
+                  <img src="/images/charmeem-logo-black.png" alt="" aria-hidden="true" />
                 </div>
                 {heroProduct.image ? (
                   <Image src={heroProduct.image} alt={heroProduct.name} className="hero-visual__photo" fill priority sizes="(max-width: 900px) 90vw, 40vw" />
@@ -231,7 +231,7 @@ export default async function HomePage() {
       <section className="section section--border" data-reveal>
         <div className="container">
           <div style={{ marginBottom: 36 }}>
-            <div className="eyebrow">Why Khud</div>
+            <div className="eyebrow">Why Char Meem</div>
             <h2 className="display display--section">No shortcuts.</h2>
           </div>
           <div className="quality-grid">
