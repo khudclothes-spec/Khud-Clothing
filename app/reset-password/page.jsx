@@ -44,10 +44,31 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
 
+    // Must have the recovery session (set when the email link was verified)
+    // before we can change the password. If it's missing, the link is the real
+    // problem; if it's present, any failure below is something else entirely.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Your reset session isn't active. Open the most recent reset link again (and in the same browser).");
+      setLoading(false);
+      return;
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
-      setError("Unable to update password. The reset link may have expired.");
+      // Surface the actual reason instead of always blaming an expired link.
+      const msg = updateError.message || "";
+      if (/different from the old password/i.test(msg)) {
+        setError("Your new password must be different from your current one.");
+      } else if (/should be at least|weak|pwned/i.test(msg)) {
+        setError(msg);
+      } else if (/session|expired|token|missing|JWT/i.test(msg)) {
+        setError("The reset link has expired or was already used. Request a new one.");
+      } else {
+        setError(msg || "Unable to update password. Please try again.");
+      }
+      console.error("[reset-password] updateUser failed:", updateError.status, updateError.code, msg);
       setLoading(false);
       return;
     }
