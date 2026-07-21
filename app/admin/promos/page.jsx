@@ -150,7 +150,7 @@ export default function AdminPromosPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Code</th><th>Type</th><th>Value</th><th>Min</th><th>Uses</th><th>Expires</th><th>Enabled</th><th>Actions</th>
+                <th>Code</th><th>Type</th><th>Value</th><th>Min</th><th>Redemptions</th><th>Expires</th><th>Enabled</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -163,7 +163,7 @@ export default function AdminPromosPage() {
                   <td>{c.discount_type}</td>
                   <td>{valueLabel(c)}</td>
                   <td>{c.min_subtotal > 0 ? `Rs ${Number(c.min_subtotal).toLocaleString()}` : "—"}</td>
-                  <td>{c.current_uses}{c.max_uses != null ? ` / ${c.max_uses}` : ""}</td>
+                  <td>{c.current_uses} total{c.max_uses != null ? ` · max ${c.max_uses}/user` : ""}</td>
                   <td>{fmtDate(c.expires_at)}</td>
                   <td>
                     <button type="button" className={`status-badge status-badge--${c.is_enabled ? "active" : "draft"}`} onClick={() => toggleEnabled(c)}>
@@ -216,8 +216,9 @@ export default function AdminPromosPage() {
               </div>
               <div className="admin-form-row admin-form-row--2">
                 <div className="form-group">
-                  <label className="form-label">Max uses</label>
+                  <label className="form-label">Max uses per user</label>
                   <input type="number" min="0" className="form-input" value={form.max_uses} onChange={(e) => field("max_uses", e.target.value)} placeholder="Unlimited" />
+                  <p className="form-hint">How many times each customer can use this code. Blank = unlimited.</p>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Expires on</label>

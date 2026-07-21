@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ArrowRight } from "@/components/Icons";
 import { Newsletter } from "@/components/Newsletter";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
+import { StudentStatusCTA } from "@/components/StudentStatusCTA";
 import { TeeGraphic } from "@/components/TeeGraphic";
 import { categories, COLORS, quality, steps, TEE_PATH, formatPrice } from "@/lib/data";
 import { createPublicClient } from "@/lib/supabase-server";
@@ -226,6 +227,10 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="container section section--tight" data-reveal>
+        <StudentStatusCTA />
       </section>
 
       <section className="section section--border" data-reveal>

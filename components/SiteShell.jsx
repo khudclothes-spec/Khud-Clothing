@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CartProvider, useCart } from "@/components/CartContext";
 import { ArrowRight, Bag, Close, Menu, ChevronDown, User, LogOut, Dashboard } from "@/components/Icons";
 import { TeeGraphic } from "@/components/TeeGraphic";
+import { StudentStatusCTA } from "@/components/StudentStatusCTA";
 import { navLinks, formatPrice } from "@/lib/data";
 import { createClient } from "@/lib/supabase";
 import { freeShippingRemaining, FREE_SHIPPING_OVER } from "@/lib/pricing";
@@ -577,6 +578,7 @@ function CartDrawer({ navigate, authUser }) {
                   ? "Free shipping unlocked"
                   : `Add ${formatPrice(rem.amount)} more for free shipping`}
               </div>
+              <StudentStatusCTA variant="cart" onNavigate={closeCart} />
               <button
                 type="button"
                 className="button button--dark"
