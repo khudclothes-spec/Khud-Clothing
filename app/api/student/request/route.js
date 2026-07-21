@@ -65,10 +65,14 @@ export async function POST(request) {
 
   // Email it (non-fatal — no-ops if Resend isn't configured).
   try {
-    await sendStudentVerificationEmail(email, token, profile?.full_name);
-  } catch (err) {
-    console.error("[api/student/request] email failed", err);
+  const r = await sendStudentVerificationEmail(email, token, profile?.full_name);
+  if (r?.skipped) {
+    console.error("[api/student/request] email skipped — RESEND_API_KEY unset in this environment");
+    return NextResponse.json({ error: "Email service isn't configured. Please contact support." }, { status: 500 });
   }
-
+  } catch (err) {
+    console.error("[api/student/request] email failed", err.message);
+    return NextResponse.json({ error: "We couldn't send the code. Please try again shortly." }, { status: 502 });
+  }
   return NextResponse.json({ ok: true });
 }

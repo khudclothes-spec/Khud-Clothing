@@ -4,6 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Eye, EyeOff } from "@/components/Icons";
+import { useEffect } from "react";
+
+useEffect(() => {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get("error")) {
+    setError("This reset link is invalid or has expired. Request a new one.");
+  }
+  // Same-browser PKCE fallback, in case a ?code= link is ever used:
+  const code = p.get("code");
+  if (code) supabase.auth.exchangeCodeForSession(code).catch(() => {});
+}, []);
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -13,6 +24,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
 
   const supabase = createClient();
 

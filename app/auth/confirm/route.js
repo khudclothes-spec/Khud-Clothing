@@ -24,5 +24,5 @@ export async function GET(request) {
   }
 
   // Missing/expired/used token → back to the verify page with a friendly notice.
-  redirect("/verify-email?error=link");
+  redirect(type === "recovery" ? "/reset-password?error=link" : "/verify-email?error=link");
 }
